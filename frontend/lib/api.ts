@@ -57,21 +57,65 @@ export type BacktestResponse = {
   rows: number;
   metrics: {
     cumulative_return: number;
+    buy_and_hold_return: number;
+    cagr: number;
     sharpe_ratio: number;
     max_drawdown: number;
+    buy_and_hold_cagr?: number;
   };
   data: BacktestRecord[];
 };
 
+export type SignalBreakdown = {
+  trend: number;
+  rsi: number;
+  macd: number;
+};
+
 export type StrategyResponse = {
   symbol: string;
+  ticker: string;
   source: string;
+  price?: number | null;
+  label: string;
+  breakdown: SignalBreakdown;
   trend: string;
   momentum: string;
   signal: string;
   confidence: string;
   score: number;
+  rsi?: number | null;
+  macd?: number | null;
+  ma50?: number | null;
+  explanation: string;
   summary: string;
+  cumulative_return?: number | null;
+  buy_and_hold_return?: number | null;
+  metrics: BacktestResponse["metrics"];
+};
+
+export type SignalRecord = {
+  rank: number;
+  symbol: string;
+  ticker: string;
+  source: string;
+  price?: number | null;
+  score: number;
+  label: string;
+  breakdown: SignalBreakdown;
+  trend: string;
+  momentum: string;
+  confidence: string;
+  rsi?: number | null;
+  macd?: number | null;
+  explanation: string;
+  summary: string;
+  metrics: BacktestResponse["metrics"];
+};
+
+export type SignalsResponse = {
+  rows: number;
+  data: SignalRecord[];
 };
 
 type RequestParams = Record<string, string | number | undefined>;
@@ -103,7 +147,7 @@ function buildUrl(path: string, params?: RequestParams) {
   return url.toString();
 }
 
-function symbolPath(route: "prices" | "indicators" | "backtest" | "strategy", symbol: string) {
+function symbolPath(route: "prices" | "indicators" | "backtest" | "strategy" | "signals", symbol: string) {
   return `/${route}/${encodeURIComponent(symbol.toUpperCase())}`;
 }
 
@@ -224,5 +268,28 @@ export async function fetchStrategy(
     interval: request.interval,
     short_window: request.short_window,
     long_window: request.long_window
+  });
+}
+
+export async function fetchSignals(
+  options: Pick<SymbolRequestOptions, "period" | "interval"> = {}
+): Promise<SignalsResponse | null> {
+  const request = { ...DEFAULT_REQUEST_OPTIONS, ...options };
+
+  return requestJson<SignalsResponse>("/signals", {
+    period: request.period,
+    interval: request.interval
+  });
+}
+
+export async function fetchSignal(
+  symbol: string,
+  options: Pick<SymbolRequestOptions, "period" | "interval"> = {}
+): Promise<SignalRecord | null> {
+  const request = { ...DEFAULT_REQUEST_OPTIONS, ...options };
+
+  return requestJson<SignalRecord>(symbolPath("signals", symbol), {
+    period: request.period,
+    interval: request.interval
   });
 }

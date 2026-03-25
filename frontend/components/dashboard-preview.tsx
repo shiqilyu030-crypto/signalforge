@@ -20,7 +20,7 @@ export function DashboardPreview() {
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Interactive Preview</p>
           <h2 className="section-heading mt-5">A dashboard built for quickly checking stocks and seeing what matters.</h2>
           <p className="section-copy mt-5">
-            Open a ticker, review the latest close, inspect RSI and MACD, compare the strategy equity curve against the market, and jump into a ranked signals view.
+            Open a ticker, inspect signal score breakdowns, compare strategy versus market returns, and move from the dashboard into the ranked signals leaderboard.
           </p>
 
           <div className="mt-10 space-y-4 text-sm text-slate-300">
@@ -28,7 +28,7 @@ export function DashboardPreview() {
               Switch between local and deployed backends with <code>NEXT_PUBLIC_API_URL</code> and keep the same product experience.
             </div>
             <div className="glass-panel rounded-3xl p-5">
-              Follow a small watchlist, review signal strength, and compare strategy versus market performance over time.
+              Follow a small watchlist, compare ranked opportunities, and see exactly how trend, RSI, and MACD contribute to each score.
             </div>
             <div className="flex flex-wrap gap-3">
               <Link
@@ -42,6 +42,12 @@ export function DashboardPreview() {
                 className="inline-flex w-fit items-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 font-medium text-white transition hover:bg-white/10"
               >
                 Open top signals
+              </Link>
+              <Link
+                href="/strategy"
+                className="inline-flex w-fit items-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 font-medium text-white transition hover:bg-white/10"
+              >
+                Read the strategy guide
               </Link>
             </div>
           </div>

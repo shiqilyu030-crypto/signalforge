@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 const navItems = [
-  { label: "Features", href: "#features" },
-  { label: "Preview", href: "#preview" },
-  { label: "API Status", href: "#status" },
-  { label: "Get Started", href: "#cta" }
+  { label: "Home", href: "/" },
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Signals", href: "/signals" },
+  { label: "Strategy", href: "/strategy" }
 ];
 
 export function SiteHeader() {
@@ -34,22 +34,10 @@ export function SiteHeader() {
 
         <nav className="hidden items-center gap-7 text-sm text-slate-300 md:flex">
           {navItems.map((item) => (
-            <a key={item.href} href={item.href} className="transition hover:text-white">
+            <Link key={item.href} href={item.href} className="transition hover:text-white">
               {item.label}
-            </a>
+            </Link>
           ))}
-          <Link
-            href="/signals"
-            className="rounded-full border border-white/12 bg-white/5 px-4 py-2 font-medium text-white transition hover:bg-white/10"
-          >
-            Top Signals
-          </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-full border border-white/12 bg-white/5 px-4 py-2 font-medium text-white transition hover:bg-white/10"
-          >
-            Dashboard
-          </Link>
         </nav>
       </div>
     </motion.header>

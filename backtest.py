@@ -47,6 +47,27 @@ def calculate_max_drawdown(cumulative_returns: pd.Series) -> float:
     return float(drawdown.min())
 
 
+def calculate_cagr(cumulative_curve: pd.Series, periods_per_year: int = 252) -> float:
+    """Return CAGR from a cumulative growth curve."""
+    clean_curve = cumulative_curve.dropna()
+    if clean_curve.empty:
+        return 0.0
+
+    total_periods = len(clean_curve) - 1
+    if total_periods <= 0:
+        return 0.0
+
+    ending_value = float(clean_curve.iloc[-1])
+    if ending_value <= 0:
+        return 0.0
+
+    years = total_periods / periods_per_year
+    if years <= 0:
+        return 0.0
+
+    return float(ending_value ** (1 / years) - 1)
+
+
 def backtest_moving_average_crossover(
     dataframe: pd.DataFrame,
     price_column: str = "Close",
@@ -75,15 +96,22 @@ def summarize_backtest(
     backtest_results: pd.DataFrame,
     strategy_return_column: str = "StrategyReturn",
     cumulative_strategy_column: str = "CumulativeStrategyReturn",
+    market_return_column: str = "MarketReturn",
+    cumulative_market_column: str = "CumulativeMarketReturn",
 ) -> Dict[str, float]:
     """Return core backtest metrics as a dictionary."""
     returns = backtest_results[strategy_return_column]
     cumulative_curve = backtest_results[cumulative_strategy_column]
+    market_returns = backtest_results[market_return_column]
+    market_curve = backtest_results[cumulative_market_column]
 
     return {
         "cumulative_return": calculate_cumulative_return(returns),
+        "buy_and_hold_return": calculate_cumulative_return(market_returns),
+        "cagr": calculate_cagr(cumulative_curve),
         "sharpe_ratio": calculate_sharpe_ratio(returns),
         "max_drawdown": calculate_max_drawdown(cumulative_curve),
+        "buy_and_hold_cagr": calculate_cagr(market_curve),
     }
 
 

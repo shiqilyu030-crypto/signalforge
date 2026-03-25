@@ -11,7 +11,6 @@ import {
   fetchPrices,
   fetchStrategy,
   type BacktestResponse,
-  type IndicatorRecord,
   type IndicatorsResponse,
   type PricesResponse,
   type StrategyResponse
@@ -191,6 +190,18 @@ export function DashboardShell() {
 
               <div className="flex flex-wrap gap-3">
                 <Link
+                  href="/signals"
+                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  Signals
+                </Link>
+                <Link
+                  href="/strategy"
+                  className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+                >
+                  Strategy
+                </Link>
+                <Link
                   href="/"
                   className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
                 >
@@ -210,12 +221,17 @@ export function DashboardShell() {
           </div>
         ) : null}
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <MetricCard label="Latest Close" value={loading ? "Loading..." : formatCurrency(latestClose)} />
           <MetricCard
             label="Cumulative Return"
             value={loading ? "Loading..." : formatPercent(metrics?.cumulative_return)}
           />
+          <MetricCard
+            label="Buy and Hold"
+            value={loading ? "Loading..." : formatPercent(metrics?.buy_and_hold_return)}
+          />
+          <MetricCard label="CAGR" value={loading ? "Loading..." : formatPercent(metrics?.cagr)} />
           <MetricCard label="Sharpe Ratio" value={loading ? "Loading..." : formatDecimal(metrics?.sharpe_ratio)} />
           <MetricCard label="Max Drawdown" value={loading ? "Loading..." : formatPercent(metrics?.max_drawdown)} />
         </div>
@@ -242,6 +258,7 @@ export function DashboardShell() {
                 </div>
 
                 <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                  <SignalBadge label="Label" value={loading ? "Loading..." : strategy?.label ?? "Unavailable"} />
                   <SignalBadge
                     label="Confidence"
                     value={loading ? "Loading..." : strategy?.confidence ?? "Unavailable"}
@@ -254,21 +271,27 @@ export function DashboardShell() {
                 <div className="grid gap-3 sm:grid-cols-3">
                   <SignalBadge label="Trend" value={loading ? "Loading..." : strategy?.trend ?? "Unavailable"} />
                   <SignalBadge
-                    label="Momentum"
-                    value={loading ? "Loading..." : strategy?.momentum ?? "Unavailable"}
+                    label="RSI"
+                    value={loading ? "Loading..." : formatDecimal(strategy?.rsi)}
                   />
                   <SignalBadge
-                    label="Signal"
-                    value={loading ? "Loading..." : strategy?.signal ?? "Unavailable"}
+                    label="MACD"
+                    value={loading ? "Loading..." : formatDecimal(strategy?.macd)}
                   />
                 </div>
 
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <BreakdownPill label="Trend" value={strategy?.breakdown?.trend} total={30} />
+                  <BreakdownPill label="RSI" value={strategy?.breakdown?.rsi} total={30} />
+                  <BreakdownPill label="MACD" value={strategy?.breakdown?.macd} total={40} />
+                </div>
+
                 <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5">
-                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Summary</p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Explanation</p>
                   <p className="mt-4 text-sm leading-7 text-slate-200">
                     {loading
                       ? "Building a plain-English market read from the latest backend data..."
-                      : strategy?.summary ?? "No summary is available for this symbol right now."}
+                      : strategy?.explanation ?? strategy?.summary ?? "No summary is available for this symbol right now."}
                   </p>
                   <p className="mt-5 text-xs uppercase tracking-[0.22em] text-slate-500">
                     Informational only. Not investment advice.
@@ -352,9 +375,10 @@ export function DashboardShell() {
               {[
                 ["Data source", state.prices?.source ?? "Loading..."],
                 ["Rows returned", state.prices?.rows ? String(state.prices.rows) : "Loading..."],
+                ["Signal label", strategy?.label ?? "Loading..."],
                 ["Latest RSI", formatDecimal(latestValue(indicatorRows, "RSI"))],
                 ["Latest MACD", formatDecimal(latestValue(indicatorRows, "MACD"))],
-                ["Strategy return", formatPercent(metrics?.cumulative_return)]
+                ["Buy and hold", formatPercent(metrics?.buy_and_hold_return)]
               ].map(([label, value]) => (
                 <div
                   key={label}
@@ -460,6 +484,35 @@ function SignalBadge({ label, value }: { label: string; value: string }) {
     <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4">
       <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{label}</p>
       <p className="mt-3 font-[var(--font-heading)] text-2xl font-semibold text-white">{value}</p>
+    </div>
+  );
+}
+
+function BreakdownPill({
+  label,
+  total,
+  value
+}: {
+  label: string;
+  total: number;
+  value?: number | null;
+}) {
+  const safeValue = typeof value === "number" ? value : 0;
+
+  return (
+    <div className="rounded-[1.35rem] border border-white/10 bg-white/[0.03] p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{label}</p>
+        <p className="text-sm font-medium text-white">
+          {safeValue}/{total}
+        </p>
+      </div>
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-violet-400"
+          style={{ width: `${(safeValue / total) * 100}%` }}
+        />
+      </div>
     </div>
   );
 }

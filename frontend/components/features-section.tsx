@@ -3,28 +3,28 @@ import { FeatureCard } from "@/components/feature-card";
 
 const features = [
   {
-    eyebrow: "Indicators",
-    title: "Technical indicators that stay readable",
+    eyebrow: "Signal Scoring",
+    title: "Transparent 0-100 signal scores",
     description:
-      "Review moving averages, RSI, and MACD in a format that feels more like a product dashboard than a trading notebook."
+      "Each ticker gets a composite score with visible trend, RSI, and MACD contributions so people can see why a name ranks well."
   },
   {
     eyebrow: "Backtesting",
-    title: "Simple strategy backtesting",
+    title: "Strategy metrics that add context",
     description:
-      "Compare cumulative strategy returns against buy-and-hold so each ticker has clear performance context."
+      "Compare cumulative return, buy-and-hold return, CAGR, Sharpe ratio, and max drawdown in the same product surface."
   },
   {
-    eyebrow: "Signal Scoring",
+    eyebrow: "Leaderboard",
     title: "Rank names by signal strength",
     description:
-      "Surface a short list of the strongest setups using backend scoring based on trend, momentum, and recent strategy behavior."
+      "Surface a short list of the strongest setups across the watchlist with a clean leaderboard ready for public demo use."
   },
   {
-    eyebrow: "Public Demo",
-    title: "A polished public-facing experience",
+    eyebrow: "Strategy Guide",
+    title: "Explain how the model works",
     description:
-      "Open the landing page, dashboard, and signals leaderboard as a clean SaaS-style demo that works well on Vercel."
+      "Give users a dedicated page that explains indicator logic, scoring construction, backtest methodology, and key limitations."
   }
 ];
 
@@ -37,7 +37,7 @@ export function FeaturesSection() {
           Everything you need to search stocks, read signals, and compare simple strategies.
         </h2>
         <p className="section-copy mt-5">
-          SignalForge brings together stock search, signal scoring, strategy backtests, and clean API-driven visuals in one simple product surface.
+          SignalForge combines market data, indicator-based scoring, transparent explanations, and leaderboard ranking in a lightweight quant discovery platform.
         </p>
 
         <div className="mt-14 grid gap-6 md:grid-cols-2">

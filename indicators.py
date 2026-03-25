@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Union
+from typing import Iterable, Optional, Union
 
 import pandas as pd
 
@@ -29,6 +29,18 @@ def add_moving_averages(
     result = dataframe.copy()
     result[f"MA{short_window}"] = result[price_column].rolling(window=short_window).mean()
     result[f"MA{long_window}"] = result[price_column].rolling(window=long_window).mean()
+    return result
+
+
+def add_named_moving_averages(
+    dataframe: pd.DataFrame,
+    windows: Iterable[int],
+    price_column: str = "Close",
+) -> pd.DataFrame:
+    """Return a copy of the DataFrame with one or more named moving averages added."""
+    result = dataframe.copy()
+    for window in windows:
+        result[f"MA{window}"] = result[price_column].rolling(window=window).mean()
     return result
 
 

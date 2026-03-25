@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
@@ -12,7 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backtest import backtest_moving_average_crossover, summarize_backtest
 from historical_prices import fetch_historical_prices
-from indicators import add_macd, add_moving_averages, add_rsi
+from indicators import add_macd, add_moving_averages, add_named_moving_averages, add_rsi
+from watchlist import DEFAULT_WATCHLIST
 
 app = FastAPI(
     title="SignalForge API",
@@ -161,208 +162,199 @@ def calculate_indicator_dataframe(
         short_window=short_window,
         long_window=long_window,
     )
+    result = add_named_moving_averages(
+        dataframe=result,
+        windows=[50],
+        price_column="Close",
+    )
     result = add_rsi(result, price_column="Close")
     result = add_macd(result, price_column="Close")
     return result
 
 
-def build_strategy_summary(
+def build_signal_payload(
     symbol: str,
     indicators_df: pd.DataFrame,
     backtest_df: pd.DataFrame,
 ) -> Dict[str, Any]:
-    """Build a scored, rule-based summary from indicator and backtest data."""
+    """Build a transparent, rule-based signal payload from indicator and backtest data."""
     latest = indicators_df.iloc[-1]
     previous = indicators_df.iloc[-2] if len(indicators_df) > 1 else latest
-    latest_backtest = backtest_df.iloc[-1]
 
     close_price = float(latest["Close"])
-    ma5 = latest.get("MA5")
-    ma20 = latest.get("MA20")
+    ma50 = latest.get("MA50")
     rsi = latest.get("RSI")
     macd = latest.get("MACD")
     macd_signal = latest.get("MACDSignal")
-    cumulative_strategy = latest_backtest.get("CumulativeStrategyReturn")
-    cumulative_curve = backtest_df.get("CumulativeStrategyReturn")
     previous_macd = previous.get("MACD")
+    previous_signal = previous.get("MACDSignal")
+    latest_backtest = backtest_df.iloc[-1]
 
-    score = 50.0
-    trend_points = 0
-    momentum_points = 0
-    drawdown_points = 0
+    trend_points = 30 if pd.notna(ma50) and close_price > float(ma50) else 0
 
-    if pd.notna(ma5):
-        if close_price > ma5:
-            score += 8
-            trend_points += 1
-        else:
-            score -= 8
-            trend_points -= 1
-
-    if pd.notna(ma20):
-        if close_price > ma20:
-            score += 14
-            trend_points += 2
-        else:
-            score -= 14
-            trend_points -= 2
-
-    if pd.notna(ma5) and pd.notna(ma20):
-        if ma5 > ma20:
-            score += 16
-            trend_points += 2
-        else:
-            score -= 16
-            trend_points -= 2
-
-    if pd.notna(rsi):
-        if rsi >= 68:
-            score += 8
-            momentum_points += 2
-        elif rsi >= 58:
-            score += 6
-            momentum_points += 1
-        elif rsi >= 48:
-            score += 1
-        elif rsi >= 38:
-            score -= 6
-            momentum_points -= 1
-        else:
-            score -= 9
-            momentum_points -= 2
-
-    if pd.notna(macd):
-        if macd > 0:
-            score += 8
-            momentum_points += 1
-        else:
-            score -= 8
-            momentum_points -= 1
-
-    if pd.notna(macd) and pd.notna(macd_signal):
-        if macd > macd_signal:
-            score += 8
-            momentum_points += 1
-        else:
-            score -= 8
-            momentum_points -= 1
-
-    if pd.notna(macd) and pd.notna(previous_macd):
-        macd_slope = macd - previous_macd
-        if macd_slope > 0:
-            score += 6
-            momentum_points += 1
-        elif macd_slope < 0:
-            score -= 6
-            momentum_points -= 1
-
-    if pd.notna(cumulative_strategy):
-        if cumulative_strategy >= 1.18:
-            score += 10
-        elif cumulative_strategy >= 1.08:
-            score += 6
-        elif cumulative_strategy >= 1.0:
-            score += 2
-        elif cumulative_strategy >= 0.92:
-            score -= 4
-        else:
-            score -= 8
-
-    if cumulative_curve is not None and not cumulative_curve.dropna().empty:
-        running_peak = cumulative_curve.cummax()
-        current_drawdown = float((cumulative_curve.iloc[-1] / running_peak.iloc[-1]) - 1)
-        if current_drawdown >= -0.03:
-            score += 6
-            drawdown_points += 2
-        elif current_drawdown >= -0.08:
-            score += 2
-            drawdown_points += 1
-        elif current_drawdown >= -0.15:
-            score -= 4
-            drawdown_points -= 1
-        else:
-            score -= 8
-            drawdown_points -= 2
-
-    score = max(0, min(100, round(score)))
-
-    trend_score = trend_points
-    if trend_score >= 4:
-        trend = "Bullish"
-    elif trend_score >= 2:
-        trend = "Positive"
-    elif trend_score <= -4:
-        trend = "Bearish"
-    elif trend_score <= -2:
-        trend = "Soft"
+    if pd.isna(rsi):
+        rsi_points = 0
+        rsi_state = "RSI is not available yet."
+    elif float(rsi) < 35:
+        rsi_points = 30
+        rsi_state = "RSI suggests oversold recovery."
+    elif float(rsi) <= 50:
+        rsi_points = 15
+        rsi_state = "RSI is improving from a softer range."
+    elif float(rsi) <= 70:
+        rsi_points = 10
+        rsi_state = "RSI is supportive but not deeply oversold."
     else:
-        trend = "Neutral"
+        rsi_points = 0
+        rsi_state = "RSI is elevated, which limits the momentum score."
 
-    momentum_score = momentum_points + drawdown_points
-    if momentum_score >= 4:
-        momentum = "Strong"
-    elif momentum_score >= 2:
+    bullish_crossover = (
+        pd.notna(macd)
+        and pd.notna(macd_signal)
+        and pd.notna(previous_macd)
+        and pd.notna(previous_signal)
+        and float(macd) > float(macd_signal)
+        and float(previous_macd) <= float(previous_signal)
+    )
+
+    if bullish_crossover:
+        macd_points = 40
+        macd_state = "MACD just flashed a bullish crossover."
+    elif pd.notna(macd) and pd.notna(macd_signal) and float(macd) > float(macd_signal):
+        macd_points = 25
+        macd_state = "MACD is above its signal line, which supports the setup."
+    elif pd.notna(macd) and pd.notna(previous_macd) and float(macd) > float(previous_macd):
+        macd_points = 10
+        macd_state = "MACD is improving, but confirmation is still limited."
+    else:
+        macd_points = 0
+        macd_state = "MACD confirmation is currently weak."
+
+    raw_score = trend_points + rsi_points + macd_points
+    score = max(0, min(100, raw_score))
+
+    if score >= 80:
+        label = "Strong Buy"
+    elif score >= 65:
+        label = "Buy"
+    elif score >= 45:
+        label = "Neutral"
+    elif score >= 25:
+        label = "Weak"
+    else:
+        label = "Bearish"
+
+    trend = "Bullish" if trend_points == 30 else "Bearish"
+    if macd_points >= 25 or rsi_points >= 15:
         momentum = "Improving"
-    elif momentum_score <= -4:
+    elif macd_points == 0 and rsi_points == 0:
         momentum = "Weak"
-    elif momentum_score <= -2:
-        momentum = "Fading"
     else:
         momentum = "Balanced"
 
-    if score >= 80:
-        signal = "High Conviction"
-    elif score >= 65:
-        signal = "Constructive"
-    elif score >= 50:
-        signal = "Watch"
-    elif score >= 35:
-        signal = "Cautious"
-    else:
-        signal = "Defensive"
-
-    confidence_distance = abs(score - 50)
-    if confidence_distance >= 28:
+    if score >= 75:
         confidence = "High"
-    elif confidence_distance >= 14:
+    elif score >= 45:
         confidence = "Medium"
     else:
         confidence = "Low"
 
-    trend_phrase = {
-        "Bullish": "trading above both its short- and longer-term averages",
-        "Positive": "showing a modest positive trend",
-        "Neutral": "moving without a strong directional edge",
-        "Soft": "leaning below its stronger trend levels",
-        "Bearish": "trading below key moving averages",
-    }[trend]
-    momentum_phrase = {
-        "Strong": "Momentum is pushing in the same direction.",
-        "Improving": "Momentum is improving.",
-        "Balanced": "Momentum is mixed.",
-        "Fading": "Momentum is fading.",
-        "Weak": "Momentum remains weak.",
-    }[momentum]
-    signal_phrase = {
-        "High Conviction": "This looks like one of the stronger rule-based setups in the group.",
-        "Constructive": "The setup looks constructive right now.",
-        "Watch": "This looks more like a watchlist name than a decisive setup.",
-        "Cautious": "The setup calls for caution right now.",
-        "Defensive": "The rule-based model is clearly defensive on this name right now.",
-    }[signal]
+    explanation_parts: List[str] = []
+    if trend_points == 30:
+        explanation_parts.append("Price is above the 50-day moving average")
+    else:
+        explanation_parts.append("Price is below the 50-day moving average")
+    explanation_parts.append(rsi_state.replace("RSI ", "RSI "))
+    explanation_parts.append(macd_state)
+    explanation = ", ".join(explanation_parts[:-1]) + f", and {explanation_parts[-1].rstrip('.') }."
 
-    summary = (
-        f"{symbol.upper()} is {trend_phrase}. {momentum_phrase} "
-        f"{signal_phrase} Confidence is {confidence.lower()} and this is not investment advice."
-    )
+    summary = f"{explanation} This signal is informational only and not investment advice."
+
+    cumulative_strategy = latest_backtest.get("CumulativeStrategyReturn")
+    buy_and_hold = latest_backtest.get("CumulativeMarketReturn")
+    cumulative_return = float(cumulative_strategy) - 1 if pd.notna(cumulative_strategy) else None
+    buy_and_hold_return = float(buy_and_hold) - 1 if pd.notna(buy_and_hold) else None
 
     return {
+        "ticker": symbol.upper(),
+        "price": close_price,
+        "score": score,
+        "label": label,
+        "breakdown": {
+            "trend": trend_points,
+            "rsi": rsi_points,
+            "macd": macd_points,
+        },
         "trend": trend,
         "momentum": momentum,
-        "signal": signal,
+        "signal": label,
         "confidence": confidence,
-        "score": score,
+        "rsi": normalize_value(rsi),
+        "macd": normalize_value(macd),
+        "ma50": normalize_value(ma50),
+        "cumulative_return": normalize_value(cumulative_return),
+        "buy_and_hold_return": normalize_value(buy_and_hold_return),
+        "explanation": explanation,
         "summary": summary,
+    }
+
+
+def build_backtest_for_symbol(
+    symbol: str,
+    start: Optional[str],
+    end: Optional[str],
+    period: str,
+    interval: str,
+    short_window: int,
+    long_window: int,
+) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, float], str]:
+    """Build the price, indicator, and backtest views for a single symbol."""
+    dataframe, source = ensure_price_data(symbol, start, end, period, interval)
+    indicators_df = calculate_indicator_dataframe(
+        dataframe=dataframe,
+        short_window=short_window,
+        long_window=long_window,
+    )
+    backtest_df = backtest_moving_average_crossover(
+        dataframe=indicators_df,
+        price_column="Close",
+        short_ma_column=f"MA{short_window}",
+        long_ma_column=f"MA{long_window}",
+    )
+    metrics = summarize_backtest(backtest_df)
+    return dataframe, indicators_df, backtest_df, metrics, source
+
+
+def build_signal_snapshot(
+    symbol: str,
+    period: str = "1y",
+    interval: str = "1d",
+    short_window: int = 5,
+    long_window: int = 20,
+) -> Dict[str, Any]:
+    """Return one ticker's signal payload for strategy and leaderboard endpoints."""
+    dataframe, indicators_df, backtest_df, metrics, source = build_backtest_for_symbol(
+        symbol=symbol,
+        start=None,
+        end=None,
+        period=period,
+        interval=interval,
+        short_window=short_window,
+        long_window=long_window,
+    )
+    signal_payload = build_signal_payload(
+        symbol=symbol,
+        indicators_df=indicators_df,
+        backtest_df=backtest_df,
+    )
+    latest_indicator = indicators_df.iloc[-1]
+    return {
+        "symbol": symbol.upper(),
+        "source": source,
+        "price": normalize_value(latest_indicator.get("Close")),
+        "trend_value": normalize_value(latest_indicator.get("MA50")),
+        **signal_payload,
+        "metrics": metrics,
     }
 
 
@@ -444,19 +436,15 @@ def get_backtest(
     if long_window <= short_window:
         raise HTTPException(status_code=400, detail="long_window must be greater than short_window.")
 
-    dataframe, source = ensure_price_data(symbol, start, end, period, interval)
-    indicators_df = calculate_indicator_dataframe(
-        dataframe=dataframe,
+    _, _, backtest_df, metrics, source = build_backtest_for_symbol(
+        symbol=symbol,
+        start=start,
+        end=end,
+        period=period,
+        interval=interval,
         short_window=short_window,
         long_window=long_window,
     )
-    backtest_df = backtest_moving_average_crossover(
-        dataframe=indicators_df,
-        price_column="Close",
-        short_ma_column=f"MA{short_window}",
-        long_ma_column=f"MA{long_window}",
-    )
-    metrics = summarize_backtest(backtest_df)
 
     return {
         "symbol": symbol.upper(),
@@ -481,21 +469,48 @@ def get_strategy(
     if long_window <= short_window:
         raise HTTPException(status_code=400, detail="long_window must be greater than short_window.")
 
-    dataframe, source = ensure_price_data(symbol, start, end, period, interval)
-    indicators_df = calculate_indicator_dataframe(
-        dataframe=dataframe,
+    _, indicators_df, backtest_df, metrics, source = build_backtest_for_symbol(
+        symbol=symbol,
+        start=start,
+        end=end,
+        period=period,
+        interval=interval,
         short_window=short_window,
         long_window=long_window,
-    )
-    backtest_df = backtest_moving_average_crossover(
-        dataframe=indicators_df,
-        price_column="Close",
-        short_ma_column=f"MA{short_window}",
-        long_ma_column=f"MA{long_window}",
     )
 
     return {
         "symbol": symbol.upper(),
         "source": source,
-        **build_strategy_summary(symbol=symbol, indicators_df=indicators_df, backtest_df=backtest_df),
+        "metrics": metrics,
+        **build_signal_payload(symbol=symbol, indicators_df=indicators_df, backtest_df=backtest_df),
     }
+
+
+@app.get("/signals")
+def get_signals(
+    period: str = "1y",
+    interval: str = "1d",
+) -> Dict[str, Any]:
+    """Return a ranked leaderboard of default-watchlist signals."""
+    ranked: List[Dict[str, Any]] = []
+    for ticker in DEFAULT_WATCHLIST:
+        try:
+            ranked.append(build_signal_snapshot(symbol=ticker, period=period, interval=interval))
+        except Exception:
+            continue
+
+    ranked = sorted(ranked, key=lambda item: item["score"], reverse=True)
+    for index, item in enumerate(ranked, start=1):
+        item["rank"] = index
+
+    return {
+        "rows": len(ranked),
+        "data": ranked,
+    }
+
+
+@app.get("/signals/{ticker}")
+def get_signal(ticker: str, period: str = "1y", interval: str = "1d") -> Dict[str, Any]:
+    """Return one ticker's transparent signal breakdown."""
+    return build_signal_snapshot(symbol=ticker, period=period, interval=interval)

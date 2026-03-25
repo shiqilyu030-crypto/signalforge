@@ -15,7 +15,7 @@ export function CtaSection() {
                 Launch a public demo that feels like a real quant product.
               </h2>
               <p className="mt-5 text-base leading-7 text-slate-300 md:text-lg">
-                Give visitors a clean landing page, a live dashboard, and a ranked signals view they can explore without needing a trading terminal.
+                Give visitors a clean landing page, a live dashboard, a strategy explainer, and a ranked signals view they can explore without needing a trading terminal.
               </p>
             </div>
 
@@ -31,6 +31,12 @@ export function CtaSection() {
                 className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
               >
                 Browse Top Signals
+              </Link>
+              <Link
+                href="/strategy"
+                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
+              >
+                Strategy Overview
               </Link>
             </div>
           </div>

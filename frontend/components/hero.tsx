@@ -4,9 +4,9 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 const proofPoints = [
-  "Search stocks in seconds",
+  "Transparent 0-100 scoring",
   "Rank the strongest signals",
-  "Compare simple strategy results"
+  "Compare strategy and market returns"
 ];
 
 export function Hero() {
@@ -31,7 +31,7 @@ export function Hero() {
               transition={{ duration: 0.75, delay: 0.1 }}
               className="max-w-4xl font-[var(--font-heading)] text-5xl font-semibold tracking-tight text-white sm:text-6xl lg:text-7xl"
             >
-              Search stocks, understand signals, and evaluate strategies with confidence.
+              A public quant signal platform with transparent scores, ranked opportunities, and clean backtest context.
             </motion.h1>
 
             <motion.p
@@ -40,7 +40,7 @@ export function Hero() {
               transition={{ duration: 0.75, delay: 0.2 }}
               className="mt-7 max-w-2xl text-lg leading-8 text-slate-300"
             >
-              SignalForge helps people search stocks, rank top setups, and review technical signals with a clean dashboard built for a public product demo.
+              SignalForge turns technical indicators into readable signal scores, clear explanations, and a leaderboard experience that feels like a lightweight SaaS product instead of a notebook.
             </motion.p>
 
             <motion.div
@@ -60,6 +60,12 @@ export function Hero() {
                 className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
               >
                 View Top Signals
+              </Link>
+              <Link
+                href="/strategy"
+                className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
+              >
+                Learn the Strategy
               </Link>
             </motion.div>
 
