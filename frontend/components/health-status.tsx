@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-import { apiBaseUrl, fetchHealth, type HealthResponse } from "@/lib/api";
+import { API_BASE, fetchHealth, type HealthResponse } from "@/lib/api";
 
 import { AnimatedSection } from "@/components/animated-section";
 
@@ -41,7 +41,7 @@ export function HealthStatus() {
               <p className="section-copy mt-5">
                 Point the frontend at any environment using <code>NEXT_PUBLIC_API_BASE_URL</code> and surface health checks directly in the product layer.
               </p>
-              <p className="mt-6 text-sm text-slate-400">Current API target: {apiBaseUrl}</p>
+              <p className="mt-6 text-sm text-slate-400">Current API target: {API_BASE}</p>
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
