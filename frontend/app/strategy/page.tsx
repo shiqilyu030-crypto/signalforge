@@ -65,6 +65,40 @@ export default function StrategyPage() {
           </div>
         </div>
 
+        <div className="mt-8 glass-panel rounded-[2rem] p-8 md:p-10">
+          <p className="text-sm uppercase tracking-[0.24em] text-cyan-200/70">Scoring Formula</p>
+          <h2 className="mt-3 font-[var(--font-heading)] text-3xl font-semibold text-white">
+            Signal Score = Trend Score + RSI Score + MACD Score
+          </h2>
+
+          <div className="mt-8 grid gap-4 lg:grid-cols-3">
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5">
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Trend Score</p>
+              <p className="mt-3 text-lg font-semibold text-white">Price &gt; MA50 → +30</p>
+              <p className="mt-3 text-sm leading-7 text-slate-300">
+                The trend block rewards names that are trading above the 50-day moving average.
+              </p>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5">
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">RSI Score</p>
+              <p className="mt-3 text-lg font-semibold text-white">RSI &lt; 35 → +30</p>
+              <p className="mt-1 text-lg font-semibold text-white">RSI 35–50 → +15</p>
+              <p className="mt-3 text-sm leading-7 text-slate-300">
+                RSI rewards softer momentum setups that may be recovering rather than already overextended.
+              </p>
+            </div>
+
+            <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5">
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">MACD Score</p>
+              <p className="mt-3 text-lg font-semibold text-white">Bullish crossover → +40</p>
+              <p className="mt-3 text-sm leading-7 text-slate-300">
+                MACD carries the largest weight because crossover confirmation is the strongest momentum signal in the current model.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           {sections.map((section) => (
             <section key={section.title} className="glass-panel rounded-[2rem] p-6">

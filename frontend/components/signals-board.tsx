@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { fetchSignals, type SignalRecord } from "@/lib/api";
 
@@ -10,6 +10,8 @@ export function SignalsBoard() {
   const [entries, setEntries] = useState<SignalRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [generatedAt, setGeneratedAt] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -28,6 +30,7 @@ export function SignalsBoard() {
         setError("SignalForge could not load the leaderboard right now. Check the backend connection and try again.");
       } else {
         setEntries(results.data);
+        setGeneratedAt(results.generated_at ?? null);
       }
 
       setLoading(false);
@@ -40,7 +43,15 @@ export function SignalsBoard() {
     };
   }, []);
 
-  const topEntry = entries[0] ?? null;
+  const filteredEntries = useMemo(() => {
+    const normalized = query.trim().toUpperCase();
+    if (!normalized) {
+      return entries;
+    }
+    return entries.filter((entry) => entry.ticker.includes(normalized));
+  }, [entries, query]);
+
+  const topEntry = filteredEntries[0] ?? null;
 
   return (
     <main className="min-h-screen bg-canvas">
@@ -80,6 +91,18 @@ export function SignalsBoard() {
           </div>
         </div>
 
+        <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
+            Last updated: {formatEasternTimestamp(generatedAt)}
+          </div>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value.toUpperCase())}
+            placeholder="Search ticker"
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.06]"
+          />
+        </div>
+
         {error ? (
           <div className="mt-6 rounded-[1.75rem] border border-rose-400/20 bg-rose-400/10 px-5 py-4 text-sm text-rose-100">
             {error}
@@ -102,7 +125,7 @@ export function SignalsBoard() {
                       <p className="mt-2 text-3xl font-semibold text-white">{formatCurrency(topEntry.price)}</p>
                       <p className="mt-3 text-sm text-slate-300">{topEntry.explanation}</p>
                     </div>
-                    <div className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-sm font-medium text-cyan-100">
+                    <div className={labelBadgeClass(topEntry.label)}>
                       Score {topEntry.score}
                     </div>
                   </div>
@@ -152,7 +175,7 @@ export function SignalsBoard() {
                         <span>...</span>
                       </div>
                     ))
-                  : entries.map((entry) => (
+                  : filteredEntries.map((entry) => (
                       <motion.div
                         key={entry.ticker}
                         initial={{ opacity: 0, y: 12 }}
@@ -164,7 +187,9 @@ export function SignalsBoard() {
                         <span className="font-medium text-white">{entry.ticker}</span>
                         <span>{formatCurrency(entry.price)}</span>
                         <span>{entry.score}</span>
-                        <span>{entry.label}</span>
+                        <span>
+                          <span className={labelBadgeClass(entry.label)}>{entry.label}</span>
+                        </span>
                         <span>{entry.trend}</span>
                         <span>{formatNumber(entry.rsi)}</span>
                         <span>{formatNumber(entry.macd)}</span>
@@ -206,4 +231,47 @@ function formatNumber(value: number | null | undefined) {
   }
 
   return value.toFixed(2);
+}
+
+function formatEasternTimestamp(value: string | null) {
+  if (!value) {
+    return "Unavailable";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return `${new Intl.DateTimeFormat("en-US", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "America/New_York"
+  }).format(date)} ET`;
+}
+
+function labelBadgeClass(label: string) {
+  const base = "inline-flex rounded-full border px-3 py-1 text-xs font-medium";
+
+  if (label === "Strong Buy") {
+    return `${base} border-emerald-400/20 bg-emerald-400/12 text-emerald-200`;
+  }
+
+  if (label === "Buy") {
+    return `${base} border-lime-300/20 bg-lime-300/12 text-lime-100`;
+  }
+
+  if (label === "Neutral") {
+    return `${base} border-white/10 bg-white/[0.06] text-slate-200`;
+  }
+
+  if (label === "Weak") {
+    return `${base} border-amber-300/20 bg-amber-300/12 text-amber-100`;
+  }
+
+  return `${base} border-rose-400/20 bg-rose-400/12 text-rose-200`;
 }

@@ -87,6 +87,7 @@ export type StrategyResponse = {
   rsi?: number | null;
   macd?: number | null;
   ma50?: number | null;
+  explanation_points?: string[];
   explanation: string;
   summary: string;
   cumulative_return?: number | null;
@@ -108,12 +109,14 @@ export type SignalRecord = {
   confidence: string;
   rsi?: number | null;
   macd?: number | null;
+  explanation_points?: string[];
   explanation: string;
   summary: string;
   metrics: BacktestResponse["metrics"];
 };
 
 export type SignalsResponse = {
+  generated_at?: string;
   rows: number;
   data: SignalRecord[];
 };

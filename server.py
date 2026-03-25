@@ -294,6 +294,7 @@ def build_signal_payload(
         "ma50": normalize_value(ma50),
         "cumulative_return": normalize_value(cumulative_return),
         "buy_and_hold_return": normalize_value(buy_and_hold_return),
+        "explanation_points": explanation_parts,
         "explanation": explanation,
         "summary": summary,
     }
@@ -493,6 +494,7 @@ def get_signals(
     interval: str = "1d",
 ) -> Dict[str, Any]:
     """Return a ranked leaderboard of default-watchlist signals."""
+    generated_at = datetime.now(timezone.utc).isoformat()
     ranked: List[Dict[str, Any]] = []
     for ticker in DEFAULT_WATCHLIST:
         try:
@@ -505,6 +507,7 @@ def get_signals(
         item["rank"] = index
 
     return {
+        "generated_at": generated_at,
         "rows": len(ranked),
         "data": ranked,
     }
@@ -513,4 +516,7 @@ def get_signals(
 @app.get("/signals/{ticker}")
 def get_signal(ticker: str, period: str = "1y", interval: str = "1d") -> Dict[str, Any]:
     """Return one ticker's transparent signal breakdown."""
-    return build_signal_snapshot(symbol=ticker, period=period, interval=interval)
+    return {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        **build_signal_snapshot(symbol=ticker, period=period, interval=interval),
+    }

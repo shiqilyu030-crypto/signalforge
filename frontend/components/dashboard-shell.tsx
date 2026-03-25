@@ -287,12 +287,28 @@ export function DashboardShell() {
                 </div>
 
                 <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.03] p-5">
-                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Explanation</p>
-                  <p className="mt-4 text-sm leading-7 text-slate-200">
-                    {loading
-                      ? "Building a plain-English market read from the latest backend data..."
-                      : strategy?.explanation ?? strategy?.summary ?? "No summary is available for this symbol right now."}
-                  </p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Why this signal?</p>
+                  {loading ? (
+                    <p className="mt-4 text-sm leading-7 text-slate-200">
+                      Building a plain-English market read from the latest backend data...
+                    </p>
+                  ) : strategy?.explanation_points?.length ? (
+                    <div className="mt-4 space-y-3">
+                      {strategy.explanation_points.map((point) => (
+                        <div
+                          key={point}
+                          className="flex items-start gap-3 rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3"
+                        >
+                          <span className="mt-1 h-2.5 w-2.5 rounded-full bg-cyan-300" />
+                          <p className="text-sm leading-7 text-slate-200">{point}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-4 text-sm leading-7 text-slate-200">
+                      {strategy?.explanation ?? strategy?.summary ?? "No summary is available for this symbol right now."}
+                    </p>
+                  )}
                   <p className="mt-5 text-xs uppercase tracking-[0.22em] text-slate-500">
                     Informational only. Not investment advice.
                   </p>
@@ -304,18 +320,23 @@ export function DashboardShell() {
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <Panel
-            title="Price and Moving Averages"
-            subtitle="SignalForge streams daily close, MA5, and MA20 directly from the FastAPI backend"
+            title="Price and Trend"
+            subtitle="SignalForge streams daily close, MA50, and momentum data directly from the FastAPI backend"
           >
-            <MiniChart data={indicatorRows.map((row) => row.Close)} color="#7dd3fc" />
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <MiniChart
+              data={indicatorRows.map((row) => row.Close)}
+              secondaryData={indicatorRows.map((row) => row.MA50)}
+              color="#7dd3fc"
+              secondaryColor="#f59e0b"
+            />
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
               <Legend label="Close" swatch="bg-cyan-300" />
-              <Legend label="MA5" swatch="bg-amber-300" />
-              <Legend label="MA20" swatch="bg-violet-300" />
+              <Legend label="MA50" swatch="bg-amber-300" />
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <StatPill label="MA5" value={formatCurrency(latestValue(indicatorRows, "MA5"))} />
-              <StatPill label="MA20" value={formatCurrency(latestValue(indicatorRows, "MA20"))} />
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <StatPill label="Close" value={formatCurrency(latestValue(indicatorRows, "Close"))} />
+              <StatPill label="MA50" value={formatCurrency(latestValue(indicatorRows, "MA50"))} />
+              <StatPill label="RSI" value={formatDecimal(latestValue(indicatorRows, "RSI"))} />
             </div>
           </Panel>
 
@@ -341,7 +362,7 @@ export function DashboardShell() {
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <Panel
-            title="Strategy Equity Curve"
+            title="Strategy vs Buy & Hold"
             subtitle="Compare the model strategy against buy-and-hold using the current backtest feed"
           >
             <MiniChart
