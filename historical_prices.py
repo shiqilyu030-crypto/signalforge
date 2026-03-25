@@ -9,6 +9,53 @@ from typing import Optional, Union
 import pandas as pd
 import yfinance as yf
 
+REQUIRED_PRICE_COLUMNS = ["Date", "Open", "High", "Low", "Close", "Volume"]
+
+
+def _normalize_history_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Normalize Yahoo Finance columns into a stable single-ticker OHLC schema."""
+    result = dataframe.copy()
+
+    if isinstance(result.columns, pd.MultiIndex):
+        normalized_columns = []
+        for first, second in result.columns.to_flat_index():
+            if first in {"Open", "High", "Low", "Close", "Adj Close", "Volume"}:
+                normalized_columns.append(first)
+            elif first in {"Date", "Datetime"}:
+                normalized_columns.append("Date")
+            elif first == "index":
+                normalized_columns.append("Date")
+            elif second in {"Date", "Datetime"}:
+                normalized_columns.append("Date")
+            else:
+                normalized_columns.append(first or second)
+        result.columns = normalized_columns
+    else:
+        normalized_columns = []
+        for column in result.columns:
+            column_name = str(column)
+            if column_name in {"Date", "Datetime", "index"}:
+                normalized_columns.append("Date")
+                continue
+            if "," in column_name:
+                normalized_columns.append(column_name.split(",", 1)[0].strip())
+                continue
+            normalized_columns.append(column_name)
+        result.columns = normalized_columns
+
+    if "Datetime" in result.columns and "Date" not in result.columns:
+        result = result.rename(columns={"Datetime": "Date"})
+
+    missing = [column for column in REQUIRED_PRICE_COLUMNS if column not in result.columns]
+    if missing:
+        raise ValueError(
+            "Yahoo Finance returned unexpected columns. "
+            f"Missing required columns: {', '.join(missing)}. "
+            f"Received: {', '.join(map(str, result.columns))}"
+        )
+
+    return result
+
 
 def fetch_historical_prices(
     symbol: str,
@@ -43,8 +90,7 @@ def fetch_historical_prices(
         raise ValueError(f"No price data returned for symbol '{symbol}'.")
 
     dataframe = history.reset_index()
-    if "Date" not in dataframe.columns:
-        dataframe = dataframe.rename(columns={dataframe.columns[0]: "Date"})
+    dataframe = _normalize_history_columns(dataframe)
     dataframe["Date"] = pd.to_datetime(dataframe["Date"])
     dataframe["Ticker"] = symbol.upper()
     dataframe = dataframe.sort_values("Date").reset_index(drop=True)
