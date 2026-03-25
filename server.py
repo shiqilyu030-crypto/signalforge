@@ -18,15 +18,9 @@ from historical_prices import fetch_historical_prices
 from indicators import add_macd, add_moving_averages, add_rsi
 from watchlist import DEFAULT_WATCHLIST
 
-
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    try:
-        init_db()
-    except Exception:
-        pass
     yield
-
 
 app = FastAPI(
     title="Quant Data Platform API",
