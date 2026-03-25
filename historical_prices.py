@@ -19,15 +19,24 @@ def fetch_historical_prices(
     interval: str = "1d",
     save_to_csv: bool = True,
     auto_adjust: bool = False,
+    timeout_seconds: int = 8,
 ) -> pd.DataFrame:
     """Download historical price data for ``symbol`` and return it as a DataFrame."""
-    ticker = yf.Ticker(symbol)
-    history = ticker.history(
-        start=start,
-        end=end,
-        period=period if not start and not end else None,
-        interval=interval,
-        auto_adjust=auto_adjust,
+    request_kwargs = {
+        "tickers": symbol,
+        "start": start,
+        "end": end,
+        "interval": interval,
+        "auto_adjust": auto_adjust,
+        "progress": False,
+        "threads": False,
+        "timeout": timeout_seconds,
+    }
+    if not start and not end:
+        request_kwargs["period"] = period
+
+    history = yf.download(
+        **request_kwargs,
     )
 
     if history.empty:

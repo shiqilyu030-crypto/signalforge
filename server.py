@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Tuple
@@ -13,7 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backtest import backtest_moving_average_crossover, summarize_backtest
 from historical_prices import fetch_historical_prices
 from indicators import add_macd, add_moving_averages, add_named_moving_averages, add_rsi
-from watchlist import DEFAULT_WATCHLIST
+from universe import MIN_HISTORY_ROWS, SCANNER_MAX_WORKERS, SCANNER_TIMEOUT_SECONDS, TOP_SIGNAL_LIMIT, UNIVERSE
 
 app = FastAPI(
     title="SignalForge API",
@@ -114,6 +115,7 @@ def ensure_price_data(
     end: Optional[str],
     period: str,
     interval: str,
+    timeout_seconds: int = SCANNER_TIMEOUT_SECONDS,
 ) -> Tuple[pd.DataFrame, str]:
     """Fetch price data directly from Yahoo Finance."""
     validate_interval(interval)
@@ -127,6 +129,7 @@ def ensure_price_data(
             period=period,
             interval=interval,
             save_to_csv=False,
+            timeout_seconds=timeout_seconds,
         )
     except ValueError as exc:
         detail = f"SignalForge could not find price data for {normalized_symbol}. {exc}"
@@ -308,9 +311,22 @@ def build_backtest_for_symbol(
     interval: str,
     short_window: int,
     long_window: int,
+    timeout_seconds: int = SCANNER_TIMEOUT_SECONDS,
 ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, Dict[str, float], str]:
     """Build the price, indicator, and backtest views for a single symbol."""
-    dataframe, source = ensure_price_data(symbol, start, end, period, interval)
+    dataframe, source = ensure_price_data(
+        symbol=symbol,
+        start=start,
+        end=end,
+        period=period,
+        interval=interval,
+        timeout_seconds=timeout_seconds,
+    )
+    if len(dataframe) < MIN_HISTORY_ROWS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"SignalForge needs at least {MIN_HISTORY_ROWS} daily bars for {symbol.upper()}.",
+        )
     indicators_df = calculate_indicator_dataframe(
         dataframe=dataframe,
         short_window=short_window,
@@ -332,6 +348,7 @@ def build_signal_snapshot(
     interval: str = "1d",
     short_window: int = 5,
     long_window: int = 20,
+    timeout_seconds: int = SCANNER_TIMEOUT_SECONDS,
 ) -> Dict[str, Any]:
     """Return one ticker's signal payload for strategy and leaderboard endpoints."""
     dataframe, indicators_df, backtest_df, metrics, source = build_backtest_for_symbol(
@@ -342,6 +359,7 @@ def build_signal_snapshot(
         interval=interval,
         short_window=short_window,
         long_window=long_window,
+        timeout_seconds=timeout_seconds,
     )
     signal_payload = build_signal_payload(
         symbol=symbol,
@@ -356,6 +374,50 @@ def build_signal_snapshot(
         "trend_value": normalize_value(latest_indicator.get("MA50")),
         **signal_payload,
         "metrics": metrics,
+    }
+
+
+def scan_universe_signals(
+    period: str,
+    interval: str,
+    limit: int = TOP_SIGNAL_LIMIT,
+) -> Dict[str, Any]:
+    """Scan the configured stock universe and return the highest-ranked signals."""
+    generated_at = datetime.now(timezone.utc).isoformat()
+    ranked: List[Dict[str, Any]] = []
+
+    with ThreadPoolExecutor(max_workers=SCANNER_MAX_WORKERS) as executor:
+        futures = {
+            executor.submit(
+                build_signal_snapshot,
+                symbol,
+                period,
+                interval,
+                5,
+                20,
+                SCANNER_TIMEOUT_SECONDS,
+            ): symbol
+            for symbol in UNIVERSE
+        }
+        for future in as_completed(futures):
+            try:
+                ranked.append(future.result())
+            except Exception:
+                continue
+
+    ranked = sorted(ranked, key=lambda item: item["score"], reverse=True)
+    limited = ranked[:limit]
+    for index, item in enumerate(limited, start=1):
+        item["rank"] = index
+
+    return {
+        "last_updated": generated_at,
+        "generated_at": generated_at,
+        "universe_size": len(UNIVERSE),
+        "symbols_scanned": len(ranked),
+        "rows": len(limited),
+        "signals": limited,
+        "data": limited,
     }
 
 
@@ -493,24 +555,8 @@ def get_signals(
     period: str = "1y",
     interval: str = "1d",
 ) -> Dict[str, Any]:
-    """Return a ranked leaderboard of default-watchlist signals."""
-    generated_at = datetime.now(timezone.utc).isoformat()
-    ranked: List[Dict[str, Any]] = []
-    for ticker in DEFAULT_WATCHLIST:
-        try:
-            ranked.append(build_signal_snapshot(symbol=ticker, period=period, interval=interval))
-        except Exception:
-            continue
-
-    ranked = sorted(ranked, key=lambda item: item["score"], reverse=True)
-    for index, item in enumerate(ranked, start=1):
-        item["rank"] = index
-
-    return {
-        "generated_at": generated_at,
-        "rows": len(ranked),
-        "data": ranked,
-    }
+    """Return a ranked leaderboard from the broader SignalForge stock universe."""
+    return scan_universe_signals(period=period, interval=interval)
 
 
 @app.get("/signals/{ticker}")

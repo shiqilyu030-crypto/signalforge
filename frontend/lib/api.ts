@@ -16,6 +16,7 @@ export type PriceRecord = {
 export type IndicatorRecord = PriceRecord & {
   MA5?: number | null;
   MA20?: number | null;
+  MA50?: number | null;
   RSI?: number | null;
   MACD?: number | null;
   MACDSignal?: number | null;
@@ -117,8 +118,12 @@ export type SignalRecord = {
 
 export type SignalsResponse = {
   generated_at?: string;
+  last_updated?: string;
+  universe_size?: number;
+  symbols_scanned?: number;
   rows: number;
   data: SignalRecord[];
+  signals?: SignalRecord[];
 };
 
 type RequestParams = Record<string, string | number | undefined>;
@@ -279,10 +284,19 @@ export async function fetchSignals(
 ): Promise<SignalsResponse | null> {
   const request = { ...DEFAULT_REQUEST_OPTIONS, ...options };
 
-  return requestJson<SignalsResponse>("/signals", {
+  const payload = await requestJson<SignalsResponse>("/signals", {
     period: request.period,
     interval: request.interval
   });
+
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    ...payload,
+    data: payload.data ?? payload.signals ?? []
+  };
 }
 
 export async function fetchSignal(

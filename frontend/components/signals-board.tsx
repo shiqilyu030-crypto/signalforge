@@ -12,6 +12,8 @@ export function SignalsBoard() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [universeSize, setUniverseSize] = useState<number | null>(null);
+  const [symbolsScanned, setSymbolsScanned] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -30,7 +32,9 @@ export function SignalsBoard() {
         setError("SignalForge could not load the leaderboard right now. Check the backend connection and try again.");
       } else {
         setEntries(results.data);
-        setGeneratedAt(results.generated_at ?? null);
+        setGeneratedAt(results.last_updated ?? results.generated_at ?? null);
+        setUniverseSize(results.universe_size ?? null);
+        setSymbolsScanned(results.symbols_scanned ?? null);
       }
 
       setLoading(false);
@@ -64,7 +68,7 @@ export function SignalsBoard() {
                 Ranked signal leaderboard
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-                A backend-powered ranking of the current watchlist, sorted by signal score with transparent price, RSI, and MACD context.
+                Scanning a broader US equity universe through the SignalForge indicator engine, then ranking the strongest setups by score with transparent price, RSI, and MACD context.
               </p>
             </div>
 
@@ -93,7 +97,13 @@ export function SignalsBoard() {
 
         <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
-            Last updated: {formatEasternTimestamp(generatedAt)}
+            <p className="font-medium text-white">Signal Ranking</p>
+            <p className="mt-1 text-slate-300">
+              Scanning ~{universeSize ?? 150} US equities using the SignalForge indicator engine.
+            </p>
+            <p className="mt-1 text-slate-400">
+              Scanned {symbolsScanned ?? 0} stocks • Last updated {formatEasternTimestamp(generatedAt)}
+            </p>
           </div>
           <input
             value={query}
@@ -175,26 +185,32 @@ export function SignalsBoard() {
                         <span>...</span>
                       </div>
                     ))
-                  : filteredEntries.map((entry) => (
-                      <motion.div
-                        key={entry.ticker}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                        className="grid grid-cols-8 px-4 py-4 text-sm text-slate-200"
-                      >
-                        <span>#{entry.rank}</span>
-                        <span className="font-medium text-white">{entry.ticker}</span>
-                        <span>{formatCurrency(entry.price)}</span>
-                        <span>{entry.score}</span>
-                        <span>
-                          <span className={labelBadgeClass(entry.label)}>{entry.label}</span>
-                        </span>
-                        <span>{entry.trend}</span>
-                        <span>{formatNumber(entry.rsi)}</span>
-                        <span>{formatNumber(entry.macd)}</span>
-                      </motion.div>
-                    ))}
+                  : filteredEntries.length
+                    ? filteredEntries.map((entry) => (
+                        <motion.div
+                          key={entry.ticker}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.4 }}
+                          className="grid grid-cols-8 px-4 py-4 text-sm text-slate-200"
+                        >
+                          <span>#{entry.rank}</span>
+                          <span className="font-medium text-white">{entry.ticker}</span>
+                          <span>{formatCurrency(entry.price)}</span>
+                          <span>{entry.score}</span>
+                          <span>
+                            <span className={labelBadgeClass(entry.label)}>{entry.label}</span>
+                          </span>
+                          <span>{entry.trend}</span>
+                          <span>{formatNumber(entry.rsi)}</span>
+                          <span>{formatNumber(entry.macd)}</span>
+                        </motion.div>
+                      ))
+                    : (
+                        <div className="px-4 py-6 text-sm text-slate-300">
+                          No ranked symbols match that ticker search right now.
+                        </div>
+                      )}
               </div>
             </div>
           </section>
