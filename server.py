@@ -401,7 +401,7 @@ def get_prices(
         "symbol": symbol.upper(),
         "source": source,
         "rows": len(dataframe),
-        "data": dataframe_to_records(dataframe),
+        "prices": dataframe_to_records(dataframe),
     }
 
 
@@ -429,7 +429,7 @@ def get_indicators(
         "symbol": symbol.upper(),
         "source": source,
         "rows": len(indicators_df),
-        "data": dataframe_to_records(indicators_df),
+        "indicators": dataframe_to_records(indicators_df),
     }
 
 
