@@ -1,5 +1,4 @@
-export const apiBaseUrl =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://127.0.0.1:8000";
+export const API_BASE = "https://signalforge-zcv2.onrender.com";
 
 export type PriceRecord = {
   Date: string;
@@ -90,7 +89,7 @@ const DEFAULT_REQUEST_OPTIONS: Required<SymbolRequestOptions> = {
 };
 
 function buildUrl(path: string, params?: RequestParams) {
-  const url = new URL(`${apiBaseUrl}${path}`);
+  const url = new URL(`${API_BASE}${path}`);
 
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
