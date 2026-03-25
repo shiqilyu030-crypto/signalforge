@@ -464,7 +464,7 @@ function SignalBadge({ label, value }: { label: string; value: string }) {
   );
 }
 
-function latestValue(rows: IndicatorRecord[], key: keyof IndicatorRecord) {
+function latestValue(rows: any[], key: string) {
   if (!rows.length) {
     return null;
   }
