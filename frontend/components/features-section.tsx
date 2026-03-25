@@ -3,28 +3,28 @@ import { FeatureCard } from "@/components/feature-card";
 
 const features = [
   {
-    eyebrow: "FastAPI",
-    title: "Fast stock lookups and signal data",
-    description:
-      "Load price history, indicators, strategy summaries, and health checks from one backend API that powers the frontend experience."
-  },
-  {
-    eyebrow: "PostgreSQL",
-    title: "Reliable market data storage",
-    description:
-      "Store daily stock and ETF prices in PostgreSQL so repeated refreshes stay clean and your dashboards have a dependable source of truth."
-  },
-  {
-    eyebrow: "ETL",
-    title: "Simple refresh workflows",
-    description:
-      "Refresh the default watchlist on a schedule, backfill history, and keep symbols ready for search without relying on manual spreadsheet work."
-  },
-  {
     eyebrow: "Indicators",
-    title: "Readable signal analysis",
+    title: "Technical indicators that stay readable",
     description:
-      "Review moving averages, RSI, MACD, and strategy signals in plain language so it is easier to spot strong setups and weaker ones."
+      "Review moving averages, RSI, and MACD in a format that feels more like a product dashboard than a trading notebook."
+  },
+  {
+    eyebrow: "Backtesting",
+    title: "Simple strategy backtesting",
+    description:
+      "Compare cumulative strategy returns against buy-and-hold so each ticker has clear performance context."
+  },
+  {
+    eyebrow: "Signal Scoring",
+    title: "Rank names by signal strength",
+    description:
+      "Surface a short list of the strongest setups using backend scoring based on trend, momentum, and recent strategy behavior."
+  },
+  {
+    eyebrow: "Public Demo",
+    title: "A polished public-facing experience",
+    description:
+      "Open the landing page, dashboard, and signals leaderboard as a clean SaaS-style demo that works well on Vercel."
   }
 ];
 
@@ -37,7 +37,7 @@ export function FeaturesSection() {
           Everything you need to search stocks, read signals, and compare simple strategies.
         </h2>
         <p className="section-copy mt-5">
-          SignalForge brings together stock data, technical indicators, backend APIs, and watchlist monitoring in one product experience that is easy to explore.
+          SignalForge brings together stock search, signal scoring, strategy backtests, and clean API-driven visuals in one simple product surface.
         </p>
 
         <div className="mt-14 grid gap-6 md:grid-cols-2">

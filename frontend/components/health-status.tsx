@@ -39,7 +39,7 @@ export function HealthStatus() {
               <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-200/70">API Health</p>
               <h2 className="section-heading mt-5">Operational visibility built into the experience.</h2>
               <p className="section-copy mt-5">
-                Point the frontend at any environment using <code>NEXT_PUBLIC_API_BASE_URL</code> and surface health checks directly in the product layer.
+                Point the frontend at any environment using <code>NEXT_PUBLIC_API_URL</code> and surface health checks directly in the product layer.
               </p>
               <p className="mt-6 text-sm text-slate-400">Current API target: {API_BASE}</p>
             </div>

@@ -9,7 +9,7 @@ const tickerCards = [
   { symbol: "AAPL", change: "+2.14%", sentiment: "Bullish bias" },
   { symbol: "MSFT", change: "+1.41%", sentiment: "Momentum building" },
   { symbol: "SPY", change: "-0.24%", sentiment: "Range-bound" },
-  { symbol: "QQQ", change: "+0.86%", sentiment: "Risk-on flow" }
+  { symbol: "META", change: "+0.86%", sentiment: "Leadership returning" }
 ];
 
 export function DashboardPreview() {
@@ -20,22 +20,30 @@ export function DashboardPreview() {
           <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Interactive Preview</p>
           <h2 className="section-heading mt-5">A dashboard built for quickly checking stocks and seeing what matters.</h2>
           <p className="section-copy mt-5">
-            Open a ticker, review the latest close, inspect RSI and MACD, read a simple signal summary, and compare strategy results without needing a technical background.
+            Open a ticker, review the latest close, inspect RSI and MACD, compare the strategy equity curve against the market, and jump into a ranked signals view.
           </p>
 
           <div className="mt-10 space-y-4 text-sm text-slate-300">
             <div className="glass-panel rounded-3xl p-5">
-              Switch between local and deployed backends with <code>NEXT_PUBLIC_API_BASE_URL</code> and keep the same product experience.
+              Switch between local and deployed backends with <code>NEXT_PUBLIC_API_URL</code> and keep the same product experience.
             </div>
             <div className="glass-panel rounded-3xl p-5">
-              Follow watchlist names, review signal strength, and see how simple strategies have behaved over time.
+              Follow a small watchlist, review signal strength, and compare strategy versus market performance over time.
             </div>
-            <Link
-              href="/dashboard"
-              className="inline-flex w-fit items-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-5 py-3 font-medium text-cyan-100 transition hover:bg-cyan-300/15"
-            >
-              Explore the backend-connected dashboard
-            </Link>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/dashboard"
+                className="inline-flex w-fit items-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-5 py-3 font-medium text-cyan-100 transition hover:bg-cyan-300/15"
+              >
+                Explore the dashboard
+              </Link>
+              <Link
+                href="/signals"
+                className="inline-flex w-fit items-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 font-medium text-white transition hover:bg-white/10"
+              >
+                Open top signals
+              </Link>
+            </div>
           </div>
         </div>
 

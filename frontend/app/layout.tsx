@@ -17,7 +17,7 @@ const bodyFont = Inter({
 export const metadata: Metadata = {
   title: "SignalForge",
   description:
-    "SignalForge is a premium market intelligence surface for data pipelines, analytics APIs, and modern quantitative workflows."
+    "SignalForge is a polished quant signal platform for stock search, technical indicators, strategy backtesting, and ranked demo signals."
 };
 
 export default function RootLayout({

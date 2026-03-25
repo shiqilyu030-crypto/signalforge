@@ -76,7 +76,7 @@ export function DashboardShell() {
           strategy: null
         });
         setError(
-          `We could not load data for ${symbol}. Try a watchlist ticker like AAPL, NVDA, TSLA, MSFT, QQQ, or SPY.`
+          `We could not load data for ${symbol}. Try a watchlist ticker like ${DEFAULT_WATCHLIST.join(", ")}.`
         );
       } else {
         setState({ prices, indicators, backtest, strategy });
@@ -317,12 +317,31 @@ export function DashboardShell() {
         </div>
 
         <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-          <Panel title="Backtest Curve" subtitle="Cumulative strategy performance from the SignalForge backtest engine">
+          <Panel
+            title="Strategy Equity Curve"
+            subtitle="Compare the model strategy against buy-and-hold using the current backtest feed"
+          >
             <MiniChart
               data={backtestRows.map((row) => row.CumulativeStrategyReturn)}
+              secondaryData={backtestRows.map((row) => row.CumulativeMarketReturn)}
               color="#6ee7b7"
               height={260}
+              secondaryColor="#7dd3fc"
             />
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Legend label="Strategy return" swatch="bg-emerald-300" />
+              <Legend label="Market return" swatch="bg-cyan-300" />
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <StatPill
+                label="Strategy curve"
+                value={formatDecimal(latestValue(backtestRows, "CumulativeStrategyReturn"))}
+              />
+              <StatPill
+                label="Market curve"
+                value={formatDecimal(latestValue(backtestRows, "CumulativeMarketReturn"))}
+              />
+            </div>
           </Panel>
 
           <Panel

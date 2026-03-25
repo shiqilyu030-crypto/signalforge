@@ -5,31 +5,20 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import {
-  fetchBacktest,
-  fetchIndicators,
-  fetchPrices,
-  fetchStrategy,
-  type BacktestResponse,
-  type IndicatorsResponse,
-  type PricesResponse,
-  type StrategyResponse
+  fetchStrategy
 } from "@/lib/api";
-import {
-  buildSignalEntry,
-  filterSignalEntries,
-  type SignalFilter,
-  type SignalLeaderboardEntry
-} from "@/lib/signal-ranking";
 import { DEFAULT_WATCHLIST } from "@/lib/watchlist";
 
-const FILTERS: SignalFilter[] = ["All", "Bullish", "Neutral", "Weak"];
+const FILTERS = ["All", "Bullish", "Neutral", "Weak"] as const;
+type SignalFilter = (typeof FILTERS)[number];
 
-type SymbolPayload = {
+type SignalLeaderboardEntry = {
   symbol: string;
-  prices: PricesResponse | null;
-  indicators: IndicatorsResponse | null;
-  backtest: BacktestResponse | null;
-  strategy: StrategyResponse | null;
+  score: number;
+  signal: string;
+  trend: string;
+  momentum: string;
+  confidence: string;
 };
 
 export function SignalsBoard() {
@@ -46,15 +35,20 @@ export function SignalsBoard() {
       setError(null);
 
       const results = await Promise.all(
-        DEFAULT_WATCHLIST.map(async (symbol): Promise<SymbolPayload> => {
-          const [prices, indicators, backtest, strategy] = await Promise.all([
-            fetchPrices(symbol),
-            fetchIndicators(symbol),
-            fetchBacktest(symbol),
-            fetchStrategy(symbol)
-          ]);
+        DEFAULT_WATCHLIST.map(async (symbol): Promise<SignalLeaderboardEntry | null> => {
+          const strategy = await fetchStrategy(symbol);
+          if (!strategy) {
+            return null;
+          }
 
-          return { symbol, prices, indicators, backtest, strategy };
+          return {
+            symbol,
+            score: strategy.score,
+            signal: strategy.signal,
+            trend: strategy.trend,
+            momentum: strategy.momentum,
+            confidence: strategy.confidence
+          };
         })
       );
 
@@ -63,7 +57,6 @@ export function SignalsBoard() {
       }
 
       const builtEntries = results
-        .map((result) => buildSignalEntry(result))
         .filter((entry): entry is SignalLeaderboardEntry => entry !== null)
         .sort((left, right) => right.score - left.score);
 
@@ -96,7 +89,7 @@ export function SignalsBoard() {
                 SignalForge watchlist leaderboard
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-                A curated view across the default watchlist, ranked with simple rule-based signal strength using trend, momentum, RSI, and strategy context.
+                A fast ranking view across the default watchlist, sorted by the backend signal score so people can spot the strongest setups first.
               </p>
             </div>
 
@@ -153,20 +146,19 @@ export function SignalsBoard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs uppercase tracking-[0.22em] text-slate-400">{topEntry.symbol}</p>
-                      <p className="mt-2 text-3xl font-semibold text-white">{formatCurrency(topEntry.latestClose)}</p>
+                      <p className="mt-2 text-3xl font-semibold text-white">Score {topEntry.score}</p>
                     </div>
                     <div className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-medium text-cyan-100">
-                      Score {topEntry.score}
+                      {topEntry.confidence} confidence
                     </div>
                   </div>
 
-                  <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-5 grid gap-3 sm:grid-cols-4">
                     <SignalPill label="Trend" value={topEntry.trend} />
                     <SignalPill label="Momentum" value={topEntry.momentum} />
                     <SignalPill label="Signal" value={topEntry.signal} />
+                    <SignalPill label="Confidence" value={topEntry.confidence} />
                   </div>
-
-                  <p className="mt-5 text-sm leading-7 text-slate-200">{topEntry.summary}</p>
                 </>
               ) : (
                 <p className="text-sm text-slate-300">No symbols match the current filter.</p>
@@ -206,7 +198,9 @@ export function SignalsBoard() {
                               {entry.symbol}
                             </h3>
                           </div>
-                          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">{entry.summary}</p>
+                          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
+                            A backend-ranked setup with {entry.confidence.toLowerCase()} confidence and a {entry.momentum.toLowerCase()} momentum read.
+                          </p>
                         </div>
 
                         <div className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-sm font-medium text-cyan-100">
@@ -216,11 +210,11 @@ export function SignalsBoard() {
 
                       <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
                         <LeaderboardStat label="Symbol" value={entry.symbol} />
+                        <LeaderboardStat label="Score" value={String(entry.score)} />
+                        <LeaderboardStat label="Confidence" value={entry.confidence} />
                         <LeaderboardStat label="Trend" value={entry.trend} />
                         <LeaderboardStat label="Momentum" value={entry.momentum} />
                         <LeaderboardStat label="Signal" value={entry.signal} />
-                        <LeaderboardStat label="Latest Close" value={formatCurrency(entry.latestClose)} />
-                        <LeaderboardStat label="RSI" value={formatNumber(entry.rsi)} />
                       </div>
                     </motion.article>
                   ))}
@@ -250,22 +244,35 @@ function LeaderboardStat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatCurrency(value: number | null) {
-  if (typeof value !== "number") {
-    return "Unavailable";
+function filterSignalEntries(entries: SignalLeaderboardEntry[], filter: SignalFilter) {
+  if (filter === "All") {
+    return entries;
   }
 
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 2
-  }).format(value);
-}
-
-function formatNumber(value: number | null) {
-  if (typeof value !== "number") {
-    return "Unavailable";
+  if (filter === "Bullish") {
+    return entries.filter(
+      (entry) =>
+        entry.trend === "Bullish" ||
+        entry.trend === "Positive" ||
+        entry.signal === "Constructive" ||
+        entry.signal === "High Conviction"
+    );
   }
 
-  return value.toFixed(1);
+  if (filter === "Neutral") {
+    return entries.filter(
+      (entry) =>
+        entry.trend === "Neutral" ||
+        entry.momentum === "Balanced" ||
+        entry.signal === "Watch"
+    );
+  }
+
+  return entries.filter(
+    (entry) =>
+      entry.momentum === "Weak" ||
+      entry.momentum === "Fading" ||
+      entry.signal === "Cautious" ||
+      entry.signal === "Defensive"
+  );
 }

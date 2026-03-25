@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const proofPoints = [
   "Search stocks in seconds",
-  "Read signals without the jargon",
+  "Rank the strongest signals",
   "Compare simple strategy results"
 ];
 
@@ -20,7 +20,7 @@ export function Hero() {
           className="inline-flex w-fit items-center gap-3 rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-slate-300 shadow-halo"
         >
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
-          Stock signals and strategy checks in one place
+          Quant Signal Platform
         </motion.div>
 
         <div className="mt-10 grid gap-14 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
@@ -40,7 +40,7 @@ export function Hero() {
               transition={{ duration: 0.75, delay: 0.2 }}
               className="mt-7 max-w-2xl text-lg leading-8 text-slate-300"
             >
-              SignalForge helps you look up stocks like AAPL or NVDA, see trend and momentum signals, and review simple strategy performance in a clean, easy-to-use dashboard.
+              SignalForge helps people search stocks, rank top setups, and review technical signals with a clean dashboard built for a public product demo.
             </motion.p>
 
             <motion.div
@@ -55,12 +55,12 @@ export function Hero() {
               >
                 Open Live Dashboard
               </Link>
-              <a
-                href="#preview"
+              <Link
+                href="/signals"
                 className="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-white/10"
               >
-                See the Product Surface
-              </a>
+                View Top Signals
+              </Link>
             </motion.div>
 
             <motion.div
@@ -120,7 +120,7 @@ export function Hero() {
                   <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
                     <p className="text-sm text-slate-400">Coverage</p>
                     <p className="mt-2 text-3xl font-semibold text-white">Stocks and ETFs</p>
-                    <p className="mt-2 text-sm text-slate-300">Track names like AAPL, NVDA, QQQ, and SPY in one watchlist.</p>
+                    <p className="mt-2 text-sm text-slate-300">Track names like AAPL, NVDA, AMZN, META, and SPY in one watchlist.</p>
                   </div>
                   <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
                     <p className="text-sm text-slate-400">Signals</p>
