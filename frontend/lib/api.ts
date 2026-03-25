@@ -120,6 +120,9 @@ export type SignalRecord = {
 export type SignalsResponse = {
   generated_at?: string;
   last_updated?: string;
+  cached_at?: string;
+  cache_status?: "fresh" | "cached";
+  refresh_interval_seconds?: number;
   universe_size?: number;
   symbols_scanned?: number;
   rows: number;

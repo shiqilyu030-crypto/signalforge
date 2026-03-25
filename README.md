@@ -11,6 +11,7 @@ Live demo:
 SignalForge is designed to feel like a small public SaaS product rather than a notebook demo. The app combines:
 - ranked signal scanning across a broad US equity universe
 - transparent technical scoring built from trend, RSI, and MACD
+- a lightweight cached signal pipeline for expensive scanner requests
 - strategy backtesting with performance and risk metrics
 - a FastAPI backend and Next.js frontend suitable for portfolio presentation
 
@@ -23,6 +24,7 @@ Yahoo Finance market data
 -> indicator engine  
 -> signal scoring  
 -> backtest metrics  
+-> cached scanner result  
 -> FastAPI endpoints  
 -> Next.js dashboard and signals leaderboard
 
@@ -40,6 +42,7 @@ Core pieces:
 - Transparent signal scoring from 0 to 100
 - Signal labels: Strong Buy, Buy, Neutral, Weak, Bearish
 - Signal explanations and score breakdowns
+- Cached `/signals` scanner with refresh metadata and cooldown-based reuse
 - Dashboard with price, MA50, RSI, and backtest views
 - Risk and performance metrics:
   - cumulative return
@@ -96,4 +99,4 @@ Open:
 Deployment notes:
 - the frontend reads the backend base URL from `NEXT_PUBLIC_API_URL`
 - the backend uses FastAPI CORS middleware to allow localhost and Vercel origins
-- the backend is stateless and fetches market data directly from Yahoo Finance at request time
+- the backend fetches market data from Yahoo Finance at request time and caches expensive universe scans in memory for a short interval

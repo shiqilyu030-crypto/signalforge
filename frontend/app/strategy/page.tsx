@@ -100,12 +100,12 @@ export default function StrategyPage() {
         </div>
 
         <div className="mt-8 glass-panel rounded-[2rem] p-8 md:p-10">
-          <p className="text-sm uppercase tracking-[0.24em] text-cyan-200/70">Model Inputs</p>
+          <p className="text-sm uppercase tracking-[0.24em] text-cyan-200/70">Score Components</p>
           <h2 className="mt-3 font-[var(--font-heading)] text-3xl font-semibold text-white">
-            Transparent factors, not black-box predictions
+            Transparent scoring factors, not black-box predictions
           </h2>
           <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300">
-            SignalForge uses a multi-factor technical scoring model built from trend confirmation, RSI positioning, MACD confirmation, and lightweight momentum context. The explanation layer is intentionally honest about the implementation: it highlights why a name ranks well without pretending the model is a full institutional research stack.
+            SignalForge uses a transparent multi-factor technical score built from trend alignment, RSI positioning, MACD confirmation, and recent momentum context. The explanation layer is intentionally honest about the implementation: it highlights why a name ranks well without pretending the model is a full institutional research stack.
           </p>
 
           <div className="mt-8 grid gap-4 lg:grid-cols-4">

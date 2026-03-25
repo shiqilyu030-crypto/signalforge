@@ -12,8 +12,13 @@ export function SignalsBoard() {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [generatedAt, setGeneratedAt] = useState<string | null>(null);
+  const [cacheStatus, setCacheStatus] = useState<"fresh" | "cached" | null>(null);
+  const [refreshIntervalSeconds, setRefreshIntervalSeconds] = useState<number | null>(null);
   const [universeSize, setUniverseSize] = useState<number | null>(null);
   const [symbolsScanned, setSymbolsScanned] = useState<number | null>(null);
+  const [scoreThreshold, setScoreThreshold] = useState("0");
+  const [rsiThreshold, setRsiThreshold] = useState("100");
+  const [trendFilter, setTrendFilter] = useState("All");
 
   useEffect(() => {
     let active = true;
@@ -33,6 +38,8 @@ export function SignalsBoard() {
       } else {
         setEntries(results.data);
         setGeneratedAt(results.last_updated ?? results.generated_at ?? null);
+        setCacheStatus(results.cache_status ?? null);
+        setRefreshIntervalSeconds(results.refresh_interval_seconds ?? null);
         setUniverseSize(results.universe_size ?? null);
         setSymbolsScanned(results.symbols_scanned ?? null);
       }
@@ -49,11 +56,17 @@ export function SignalsBoard() {
 
   const filteredEntries = useMemo(() => {
     const normalized = query.trim().toUpperCase();
-    if (!normalized) {
-      return entries;
-    }
-    return entries.filter((entry) => entry.ticker.includes(normalized));
-  }, [entries, query]);
+    const scoreFloor = Number(scoreThreshold) || 0;
+    const rsiCeiling = Number(rsiThreshold) || 100;
+
+    return entries.filter((entry) => {
+      const searchMatch = !normalized || entry.ticker.includes(normalized);
+      const scoreMatch = entry.score >= scoreFloor;
+      const rsiMatch = typeof entry.rsi !== "number" || entry.rsi <= rsiCeiling;
+      const trendMatch = trendFilter === "All" || entry.trend === trendFilter;
+      return searchMatch && scoreMatch && rsiMatch && trendMatch;
+    });
+  }, [entries, query, scoreThreshold, rsiThreshold, trendFilter]);
 
   const topEntry = filteredEntries[0] ?? null;
 
@@ -99,10 +112,16 @@ export function SignalsBoard() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
             <p className="font-medium text-white">Signal Ranking</p>
             <p className="mt-1 text-slate-300">
-              Broad US signal universe focused on top liquid equities, processed through the SignalForge indicator engine.
+              SignalForge scans a broad universe of liquid US equities and ranks the strongest setups with a transparent multi-factor model.
             </p>
             <p className="mt-1 text-slate-400">
-              Scanned {symbolsScanned ?? 0} stocks • Last updated {formatEasternTimestamp(generatedAt)}
+              Universe: Top liquid US equities (~{universeSize ?? 139} symbols)
+            </p>
+            <p className="mt-1 text-slate-400">
+              Scanned: {symbolsScanned ?? 0} symbols • Last updated {formatEasternTimestamp(generatedAt)}
+            </p>
+            <p className="mt-1 text-slate-500">
+              {cacheStatus === "cached" ? "Served from cache" : "Fresh scan"} • Signals refresh every {formatRefreshCadence(refreshIntervalSeconds)}
             </p>
           </div>
           <input
@@ -111,6 +130,52 @@ export function SignalsBoard() {
             placeholder="Search ticker"
             className="w-full max-w-sm rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/40 focus:bg-white/[0.06]"
           />
+        </div>
+
+        <div className="mt-4 grid gap-3 rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 md:grid-cols-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Score Threshold</p>
+            <select
+              value={scoreThreshold}
+              onChange={(event) => setScoreThreshold(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none"
+            >
+              <option value="0">All scores</option>
+              <option value="45">Score &gt;= 45</option>
+              <option value="60">Score &gt;= 60</option>
+              <option value="80">Score &gt;= 80</option>
+            </select>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-500">RSI Threshold</p>
+            <select
+              value={rsiThreshold}
+              onChange={(event) => setRsiThreshold(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none"
+            >
+              <option value="100">All RSI</option>
+              <option value="60">RSI &lt;= 60</option>
+              <option value="50">RSI &lt;= 50</option>
+              <option value="40">RSI &lt;= 40</option>
+            </select>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Trend Filter</p>
+            <select
+              value={trendFilter}
+              onChange={(event) => setTrendFilter(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none"
+            >
+              <option value="All">All</option>
+              <option value="Bullish">Bullish</option>
+              <option value="Bearish">Bearish</option>
+            </select>
+          </div>
+          <div className="flex items-end">
+            <div className="rounded-xl border border-white/10 bg-slate-950/40 px-4 py-2 text-sm text-slate-300">
+              {filteredEntries.length} ranked rows match
+            </div>
+          </div>
         </div>
 
         {error ? (
@@ -312,6 +377,15 @@ function formatEasternTimestamp(value: string | null) {
     hour12: false,
     timeZone: "America/New_York"
   }).format(date)} ET`;
+}
+
+function formatRefreshCadence(value: number | null) {
+  if (!value) {
+    return "a few minutes";
+  }
+
+  const minutes = Math.round(value / 60);
+  return minutes <= 1 ? "1 minute" : `${minutes} minutes`;
 }
 
 function labelBadgeClass(label: string) {

@@ -5,6 +5,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timezone
 from decimal import Decimal
+from threading import Lock
 from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -14,12 +15,22 @@ from fastapi.middleware.cors import CORSMiddleware
 from backtest import backtest_moving_average_crossover, summarize_backtest
 from historical_prices import fetch_historical_prices
 from indicators import add_macd, add_moving_averages, add_named_moving_averages, add_rsi
-from universe import MIN_HISTORY_ROWS, SCANNER_MAX_WORKERS, SCANNER_TIMEOUT_SECONDS, TOP_SIGNAL_LIMIT, UNIVERSE
+from universe import (
+    MIN_HISTORY_ROWS,
+    SCANNER_MAX_WORKERS,
+    SCANNER_REFRESH_INTERVAL_SECONDS,
+    SCANNER_TIMEOUT_SECONDS,
+    TOP_SIGNAL_LIMIT,
+    UNIVERSE,
+)
 
 app = FastAPI(
     title="SignalForge API",
     version="0.2.0",
 )
+
+_SIGNALS_CACHE: Dict[str, Any] = {}
+_SIGNALS_CACHE_LOCK = Lock()
 
 app.add_middleware(
     CORSMiddleware,
@@ -423,12 +434,58 @@ def scan_universe_signals(
     return {
         "last_updated": generated_at,
         "generated_at": generated_at,
+        "cached_at": generated_at,
+        "cache_status": "fresh",
+        "refresh_interval_seconds": SCANNER_REFRESH_INTERVAL_SECONDS,
         "universe_size": len(UNIVERSE),
         "symbols_scanned": len(ranked),
         "rows": len(limited),
         "signals": limited,
         "data": limited,
     }
+
+
+def get_cached_universe_signals(
+    period: str,
+    interval: str,
+    limit: int = TOP_SIGNAL_LIMIT,
+) -> Dict[str, Any]:
+    """Serve cached universe scans during a short cooldown window."""
+    cache_key = f"{period}:{interval}:{limit}"
+    now = datetime.now(timezone.utc)
+
+    with _SIGNALS_CACHE_LOCK:
+        cached_entry = _SIGNALS_CACHE.get(cache_key)
+        if cached_entry is not None:
+            age_seconds = (now - cached_entry["cached_at"]).total_seconds()
+            if age_seconds < SCANNER_REFRESH_INTERVAL_SECONDS:
+                payload = dict(cached_entry["payload"])
+                payload["cache_status"] = "cached"
+                payload["cached_at"] = cached_entry["cached_at"].isoformat()
+                payload["refresh_interval_seconds"] = SCANNER_REFRESH_INTERVAL_SECONDS
+                return payload
+
+    try:
+        fresh_payload = scan_universe_signals(period=period, interval=interval, limit=limit)
+    except Exception:
+        with _SIGNALS_CACHE_LOCK:
+            cached_entry = _SIGNALS_CACHE.get(cache_key)
+            if cached_entry is not None:
+                payload = dict(cached_entry["payload"])
+                payload["cache_status"] = "cached"
+                payload["cached_at"] = cached_entry["cached_at"].isoformat()
+                payload["refresh_interval_seconds"] = SCANNER_REFRESH_INTERVAL_SECONDS
+                return payload
+        raise
+
+    with _SIGNALS_CACHE_LOCK:
+        cached_at = datetime.fromisoformat(fresh_payload["cached_at"])
+        _SIGNALS_CACHE[cache_key] = {
+            "cached_at": cached_at,
+            "payload": fresh_payload,
+        }
+
+    return fresh_payload
 
 
 @app.get("/")
@@ -566,7 +623,7 @@ def get_signals(
     interval: str = "1d",
 ) -> Dict[str, Any]:
     """Return a ranked leaderboard from the broader SignalForge stock universe."""
-    return scan_universe_signals(period=period, interval=interval)
+    return get_cached_universe_signals(period=period, interval=interval)
 
 
 @app.get("/signals/{ticker}")
