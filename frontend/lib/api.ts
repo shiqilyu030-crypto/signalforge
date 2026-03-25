@@ -1,4 +1,5 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+export const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL || "https://quant-data-platform-api-production.up.railway.app";
 
 export type PriceRecord = {
   Date: string;
