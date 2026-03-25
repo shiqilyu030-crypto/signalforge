@@ -1,102 +1,185 @@
-# SignalForge
+SignalForge
 
-SignalForge is a lightweight quantitative signal platform built with FastAPI and Next.js. It ingests Yahoo Finance market data, normalizes daily OHLC prices, computes technical indicators, ranks a broad US equity universe with a transparent multi-factor score, and exposes the results through a product-style dashboard and leaderboard.
+SignalForge is a full-stack quantitative signal platform that scans a universe of US equities, computes technical indicators, and ranks trading setups using a transparent multi-factor scoring model.
+
+The system integrates market data ingestion, indicator computation, signal ranking, and interactive visualization into a single web platform.
 
 Live demo:
-- Frontend: [https://signalforge-rose.vercel.app](https://signalforge-rose.vercel.app)
-- Backend API: [https://quant-data-platform-api-production.up.railway.app](https://quant-data-platform-api-production.up.railway.app)
+https://signalforge-rose.vercel.app/
 
-## Overview
+Overview
 
-SignalForge is designed to feel like a small public SaaS product rather than a notebook demo. The app combines:
-- ranked signal scanning across a broad US equity universe
-- transparent technical scoring built from trend, RSI, and MACD
-- a lightweight cached signal pipeline for expensive scanner requests
-- strategy backtesting with performance and risk metrics
-- a FastAPI backend and Next.js frontend suitable for portfolio presentation
+SignalForge scans a broad universe of liquid US equities and identifies potential trading opportunities using a multi-factor signal model.
 
-## Architecture
+The platform:
 
-SignalForge follows a simple analytics pipeline:
+• retrieves market data from Yahoo Finance
+• computes technical indicators such as RSI, MACD, and moving averages
+• generates ranked signals based on a scoring engine
+• visualizes results through an interactive dashboard
 
-Yahoo Finance market data  
--> price normalization  
--> indicator engine  
--> signal scoring  
--> backtest metrics  
--> cached scanner result  
--> FastAPI endpoints  
--> Next.js dashboard and signals leaderboard
+The application is designed as a full-stack analytics product combining data engineering, backend APIs, and modern frontend visualization.
 
-Core pieces:
-- `historical_prices.py`: market data download and OHLC normalization
-- `indicators.py`: moving averages, RSI, and MACD calculations
-- `backtest.py`: moving-average crossover backtest and performance metrics
-- `server.py`: FastAPI routes for prices, indicators, backtests, signals, and strategy summaries
-- `universe.py`: broader liquid US equity universe and scanner settings
-- `frontend/`: Next.js product UI
+Features
+Market Signal Scanner
 
-## Features
+Scans a broad universe of US equities and ranks the strongest setups based on technical signals.
 
-- Broad market scanner across top liquid US equities
-- Transparent signal scoring from 0 to 100
-- Signal labels: Strong Buy, Buy, Neutral, Weak, Bearish
-- Signal explanations and score breakdowns
-- Cached `/signals` scanner with refresh metadata and cooldown-based reuse
-- Dashboard with price, MA50, RSI, and backtest views
-- Risk and performance metrics:
-  - cumulative return
-  - buy and hold return
-  - CAGR
-  - Sharpe ratio
-  - max drawdown
-- Product-style strategy page explaining the model and pipeline
+Features:
 
-## API Endpoints
+• signal leaderboard across ~100 liquid US equities
+• multi-factor signal scoring model
+• real-time signal ranking table
+• sparkline trend visualization for each asset
 
-- `GET /health`
-- `GET /prices/{symbol}`
-- `GET /indicators/{symbol}`
-- `GET /backtest/{symbol}`
-- `GET /strategy/{symbol}`
-- `GET /signals`
-- `GET /signals/{ticker}`
+Signal Dashboard
 
-Example:
+Interactive dashboard for deeper signal inspection.
 
-```bash
-curl https://quant-data-platform-api-production.up.railway.app/signals
-```
+Metrics include:
 
-## Local Development
+• latest price
+• signal score
+• RSI
+• MACD
+• trend classification
+• strategy performance metrics such as CAGR, Sharpe ratio, and max drawdown
 
-Backend:
+Users can navigate from the signal leaderboard directly to the dashboard for a selected symbol.
 
-```bash
+Strategy Transparency
+
+The platform exposes the signal model components so users can understand how signals are generated.
+
+Scoring factors include:
+
+• trend strength
+• RSI positioning
+• MACD confirmation
+• momentum context
+
+This design emphasizes interpretability rather than black-box predictions.
+
+Lightweight Data Pipeline
+
+SignalForge implements a lightweight signal pipeline:
+
+Market Data (Yahoo Finance)
+→ price normalization
+→ indicator engine
+→ signal scoring
+→ cached scanner results
+→ FastAPI endpoints
+→ frontend visualization
+
+To improve stability and performance, signal scans are cached and reused across requests instead of recomputing the full universe each time.
+
+Signal Filtering
+
+The signal leaderboard supports lightweight filtering similar to a market screener.
+
+Users can filter signals by:
+
+• score thresholds
+• RSI conditions
+• trend direction
+
+This enables quick exploration of potential setups.
+
+Architecture
+
+SignalForge follows a simple full-stack architecture.
+
+Frontend
+
+Next.js
+React
+TypeScript
+Tailwind CSS
+
+Backend
+
+FastAPI
+Python
+Pandas / NumPy
+
+Data
+
+Yahoo Finance market data
+technical indicator computation
+signal scoring engine
+
+Deployment
+
+Vercel — frontend hosting
+Railway — backend API deployment
+
+API Endpoints
+Signals
+
+GET /signals
+
+Returns ranked signal results across the equity universe.
+
+Response includes:
+
+• ticker
+• price
+• signal score
+• RSI
+• MACD
+• trend
+• sparkline price series
+
+Signals are served from a cached scan to avoid recomputing the entire universe on every request.
+
+Price History
+
+GET /prices/{symbol}
+
+Returns historical OHLC data for the requested symbol.
+
+Used by the dashboard to render performance metrics and charts.
+
+Local Development
+
+Clone the repository
+
+git clone https://github.com/shiqilyu030-crypto/signalforge.git
+cd signalforge
+
+Start backend
+
 pip install -r requirements.txt
 uvicorn server:app --host 0.0.0.0 --port 8000
-```
 
-Frontend:
+Start frontend
 
-```bash
 cd frontend
 npm install
 NEXT_PUBLIC_API_URL=http://127.0.0.1:8000 npm run dev
-```
 
-Open:
-- `http://localhost:3000`
-- `http://localhost:3000/dashboard`
-- `http://localhost:3000/signals`
-- `http://localhost:3000/strategy`
+Open in browser
 
-## Deployment
+http://localhost:3000
+Project Motivation
 
-- Frontend: Vercel
-- Backend: Railway
+SignalForge was built as a full-stack data analytics project combining financial data engineering, backend API design, and interactive frontend visualization.
 
-Deployment notes:
-- the frontend reads the backend base URL from `NEXT_PUBLIC_API_URL`
-- the backend uses FastAPI CORS middleware to allow localhost and Vercel origins
-- the backend fetches market data from Yahoo Finance at request time and caches expensive universe scans in memory for a short interval
+The goal was to create a transparent signal discovery platform that demonstrates:
+
+• data ingestion and processing pipelines
+• technical indicator modeling
+• signal ranking logic
+• production-style API design
+• modern web data visualization
+
+Future Improvements
+
+Potential future enhancements include:
+
+• scheduled daily data pipelines
+• persistent signal storage
+• expanded equity universe (S&P 500)
+• advanced factor models
+• portfolio backtesting tools
