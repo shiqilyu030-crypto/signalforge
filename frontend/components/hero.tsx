@@ -122,11 +122,11 @@ export function Hero() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                   <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
                     <p className="text-sm text-slate-400">Coverage</p>
-                    <p className="mt-2 text-3xl font-semibold text-white">Stocks and ETFs</p>
-                    <p className="mt-2 text-sm text-slate-300">Track names like AAPL, NVDA, AMZN, META, and SPY in one watchlist.</p>
+                    <p className="mt-2 text-3xl font-semibold text-white">Broad US universe</p>
+                    <p className="mt-2 text-sm text-slate-300">Scan top liquid US equities and open ranked names directly in the dashboard.</p>
                   </div>
                   <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
                     <p className="text-sm text-slate-400">Signals</p>

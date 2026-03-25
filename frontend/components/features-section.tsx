@@ -18,7 +18,7 @@ const features = [
     eyebrow: "Leaderboard",
     title: "Rank names by signal strength",
     description:
-      "Surface a short list of the strongest setups across the watchlist with a clean leaderboard ready for public demo use."
+      "Surface a short list of the strongest setups across a broad US signal universe with a clean leaderboard ready for public demo use."
   },
   {
     eyebrow: "Strategy Guide",

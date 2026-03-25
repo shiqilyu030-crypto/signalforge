@@ -102,6 +102,7 @@ export type SignalRecord = {
   ticker: string;
   source: string;
   price?: number | null;
+  sparkline?: number[];
   score: number;
   label: string;
   breakdown: SignalBreakdown;

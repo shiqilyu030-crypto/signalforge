@@ -6,7 +6,7 @@ const sections = [
   {
     title: "Strategy Overview",
     body:
-      "SignalForge is a lightweight quantitative signal platform that combines a trend filter, momentum signals, and a transparent score to rank setups in a public demo experience."
+      "SignalForge is a lightweight quantitative signal platform that combines a trend filter, momentum positioning, and confirmation signals into a transparent multi-factor score for a public demo experience."
   },
   {
     title: "Trend Filter",
@@ -21,7 +21,7 @@ const sections = [
   {
     title: "Score Construction",
     body:
-      "Scores run from 0 to 100. Trend contributes up to 30 points, RSI up to 30 points, and MACD up to 40 points. The final label maps into Strong Buy, Buy, Neutral, Weak, or Bearish."
+      "Scores run from 0 to 100. Trend contributes up to 30 points, RSI up to 30 points, and MACD up to 40 points. Momentum context then helps describe whether the setup is improving, balanced, or weak. The final label maps into Strong Buy, Buy, Neutral, Weak, or Bearish."
   },
   {
     title: "Backtesting Method",
@@ -46,7 +46,7 @@ export default function StrategyPage() {
             Transparent signal logic for a public quant demo
           </h1>
           <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-300">
-            SignalForge explains how trend, RSI, and MACD combine into a score and how backtest metrics are used to add context around each ranked setup.
+            SignalForge uses a multi-factor technical scoring model built from trend confirmation, momentum positioning, and MACD confirmation. The goal is not to claim advanced quant research, but to make the ranking logic readable, testable, and useful in a product setting.
           </p>
 
           <div className="mt-8 flex flex-wrap gap-3">
@@ -99,6 +99,57 @@ export default function StrategyPage() {
           </div>
         </div>
 
+        <div className="mt-8 glass-panel rounded-[2rem] p-8 md:p-10">
+          <p className="text-sm uppercase tracking-[0.24em] text-cyan-200/70">Model Inputs</p>
+          <h2 className="mt-3 font-[var(--font-heading)] text-3xl font-semibold text-white">
+            Transparent factors, not black-box predictions
+          </h2>
+          <p className="mt-5 max-w-3xl text-base leading-8 text-slate-300">
+            SignalForge uses a multi-factor technical scoring model built from trend confirmation, RSI positioning, MACD confirmation, and lightweight momentum context. The explanation layer is intentionally honest about the implementation: it highlights why a name ranks well without pretending the model is a full institutional research stack.
+          </p>
+
+          <div className="mt-8 grid gap-4 lg:grid-cols-4">
+            <InfoCard
+              title="Trend"
+              body="Price relative to MA50 acts as the primary directional filter and determines whether the broader setup is supportive."
+            />
+            <InfoCard
+              title="RSI"
+              body="RSI captures where the name sits in its momentum range, with higher points assigned to softer, potentially recovering conditions."
+            />
+            <InfoCard
+              title="MACD"
+              body="MACD looks for improving confirmation and bullish crossovers, which carry the largest weight in the current model."
+            />
+            <InfoCard
+              title="Momentum Context"
+              body="SignalForge adds plain-English momentum context like Improving, Balanced, or Weak so ranked names are easier to interpret."
+            />
+          </div>
+        </div>
+
+        <div className="mt-8 glass-panel rounded-[2rem] p-8 md:p-10">
+          <p className="text-sm uppercase tracking-[0.24em] text-cyan-200/70">How It Works</p>
+          <h2 className="mt-3 font-[var(--font-heading)] text-3xl font-semibold text-white">
+            A simple market-data pipeline behind the product
+          </h2>
+
+          <div className="mt-8 grid gap-4 lg:grid-cols-6">
+            {[
+              "Yahoo Finance market data",
+              "Price normalization",
+              "Indicator engine",
+              "Signal scoring",
+              "Backtest metrics",
+              "FastAPI and Next.js surfaces"
+            ].map((step) => (
+              <div key={step} className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5">
+                <p className="text-sm font-medium leading-6 text-white">{step}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           {sections.map((section) => (
             <section key={section.title} className="glass-panel rounded-[2rem] p-6">
@@ -109,5 +160,14 @@ export default function StrategyPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function InfoCard({ title, body }: { title: string; body: string }) {
+  return (
+    <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-5">
+      <p className="text-xs uppercase tracking-[0.22em] text-slate-500">{title}</p>
+      <p className="mt-3 text-sm leading-7 text-slate-300">{body}</p>
+    </div>
   );
 }

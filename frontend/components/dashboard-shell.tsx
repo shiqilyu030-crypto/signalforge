@@ -27,9 +27,14 @@ type DashboardState = {
 };
 
 const DEFAULT_SYMBOL = "AAPL";
-export function DashboardShell() {
-  const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
-  const [query, setQuery] = useState(DEFAULT_SYMBOL);
+type DashboardShellProps = {
+  initialSymbol?: string;
+};
+
+export function DashboardShell({ initialSymbol }: DashboardShellProps) {
+  const initial = initialSymbol?.trim().toUpperCase() || DEFAULT_SYMBOL;
+  const [symbol, setSymbol] = useState(initial);
+  const [query, setQuery] = useState(initial);
   const [state, setState] = useState<DashboardState>({
     backtest: null,
     indicators: null,
@@ -75,7 +80,7 @@ export function DashboardShell() {
           strategy: null
         });
         setError(
-          `We could not load data for ${symbol}. Try a watchlist ticker like ${DEFAULT_WATCHLIST.join(", ")}.`
+          `We could not load data for ${symbol}. Try a liquid US ticker like ${DEFAULT_WATCHLIST.join(", ")}.`
         );
       } else {
         setState({ prices, indicators, backtest, strategy });
@@ -155,7 +160,7 @@ export function DashboardShell() {
                             className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-slate-200 transition hover:bg-white/[0.05]"
                           >
                             <span>{item}</span>
-                            <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Watchlist</span>
+                            <span className="text-xs uppercase tracking-[0.2em] text-slate-500">Quick Pick</span>
                           </button>
                         ))}
                       </div>
@@ -171,6 +176,7 @@ export function DashboardShell() {
                 </div>
               </form>
 
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Quick picks from the broader signal universe</p>
               <div className="flex flex-wrap gap-2">
                 {DEFAULT_WATCHLIST.map((item) => (
                   <button
@@ -221,7 +227,14 @@ export function DashboardShell() {
           </div>
         ) : null}
 
-        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-8">
+          <p className="text-sm uppercase tracking-[0.24em] text-cyan-200/70">Risk & Performance</p>
+          <h2 className="mt-2 font-[var(--font-heading)] text-2xl font-semibold text-white">
+            Signal and strategy analytics in one workspace
+          </h2>
+        </div>
+
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <MetricCard label="Latest Close" value={loading ? "Loading..." : formatCurrency(latestClose)} />
           <MetricCard
             label="Cumulative Return"

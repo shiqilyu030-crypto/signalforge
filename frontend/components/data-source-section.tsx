@@ -11,7 +11,7 @@ const items = [
   },
   {
     label: "Processing",
-    value: "SignalForge indicator engine"
+    value: "Indicator engine, signal scoring, and backtest metrics"
   }
 ];
 
@@ -25,7 +25,7 @@ export function DataSourceSection() {
               <p className="text-sm font-semibold uppercase tracking-[0.28em] text-cyan-200/70">Data Source</p>
               <h2 className="section-heading mt-5">Real market data, productized into signals.</h2>
               <p className="section-copy mt-5">
-                Market data is sourced from Yahoo Finance and processed through the SignalForge indicator engine to produce transparent scores, backtests, and ranked signals.
+                SignalForge uses Yahoo Finance daily OHLC market data, normalizes the price series, computes technical indicators, and turns the output into transparent scores, backtest metrics, and ranked signals.
               </p>
             </div>
           </div>

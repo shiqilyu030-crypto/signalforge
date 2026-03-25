@@ -381,6 +381,7 @@ def build_signal_snapshot(
         "source": source,
         "price": normalize_value(latest_indicator.get("Close")),
         "trend_value": normalize_value(latest_indicator.get("MA50")),
+        "sparkline": [normalize_value(value) for value in dataframe["Close"].tail(20).tolist()],
         **signal_payload,
         "metrics": metrics,
     }

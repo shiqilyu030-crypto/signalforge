@@ -28,7 +28,7 @@ export function DashboardPreview() {
               Switch between local and deployed backends with <code>NEXT_PUBLIC_API_URL</code> and keep the same product experience.
             </div>
             <div className="glass-panel rounded-3xl p-5">
-              Follow a small watchlist, compare ranked opportunities, and see exactly how trend, RSI, and MACD contribute to each score.
+              Jump from the ranked scanner into individual ticker workspaces and see exactly how trend, RSI, and MACD contribute to each score.
             </div>
             <div className="flex flex-wrap gap-3">
               <Link

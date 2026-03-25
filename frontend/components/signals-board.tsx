@@ -68,7 +68,7 @@ export function SignalsBoard() {
                 Ranked signal leaderboard
               </h1>
               <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-                Scanning a broader US equity universe through the SignalForge indicator engine, then ranking the strongest setups by score with transparent price, RSI, and MACD context.
+                SignalForge scans a broad universe of liquid US equities and ranks the strongest setups using a transparent multi-factor score.
               </p>
             </div>
 
@@ -99,7 +99,7 @@ export function SignalsBoard() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm text-slate-300">
             <p className="font-medium text-white">Signal Ranking</p>
             <p className="mt-1 text-slate-300">
-              Scanning ~{universeSize ?? 150} US equities using the SignalForge indicator engine.
+              Broad US signal universe focused on top liquid equities, processed through the SignalForge indicator engine.
             </p>
             <p className="mt-1 text-slate-400">
               Scanned {symbolsScanned ?? 0} stocks • Last updated {formatEasternTimestamp(generatedAt)}
@@ -160,23 +160,25 @@ export function SignalsBoard() {
             </h2>
 
             <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-white/10">
-              <div className="grid grid-cols-8 bg-white/[0.04] px-4 py-3 text-xs uppercase tracking-[0.2em] text-slate-400">
+              <div className="grid grid-cols-9 bg-white/[0.04] px-4 py-3 text-xs uppercase tracking-[0.2em] text-slate-400">
                 <span>Rank</span>
                 <span>Ticker</span>
                 <span>Price</span>
+                <span>Spark</span>
                 <span>Score</span>
                 <span>Label</span>
-                <span>Trend</span>
                 <span>RSI</span>
                 <span>MACD</span>
+                <span>Trend</span>
               </div>
 
               <div className="divide-y divide-white/8">
                 {loading
                   ? Array.from({ length: 7 }).map((_, index) => (
-                      <div key={index} className="grid grid-cols-8 px-4 py-4 text-sm text-slate-300">
+                      <div key={index} className="grid grid-cols-9 px-4 py-4 text-sm text-slate-300">
                         <span>...</span>
                         <span>Loading</span>
+                        <span>...</span>
                         <span>...</span>
                         <span>...</span>
                         <span>...</span>
@@ -192,18 +194,26 @@ export function SignalsBoard() {
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.4 }}
-                          className="grid grid-cols-8 px-4 py-4 text-sm text-slate-200"
+                          className="grid grid-cols-9 px-4 py-4 text-sm text-slate-200"
                         >
                           <span>#{entry.rank}</span>
-                          <span className="font-medium text-white">{entry.ticker}</span>
+                          <Link
+                            href={`/dashboard?symbol=${encodeURIComponent(entry.ticker)}`}
+                            className="font-medium text-white transition hover:text-cyan-200"
+                          >
+                            {entry.ticker}
+                          </Link>
                           <span>{formatCurrency(entry.price)}</span>
+                          <span>
+                            <MiniSparkline values={entry.sparkline ?? []} />
+                          </span>
                           <span>{entry.score}</span>
                           <span>
                             <span className={labelBadgeClass(entry.label)}>{entry.label}</span>
                           </span>
-                          <span>{entry.trend}</span>
                           <span>{formatNumber(entry.rsi)}</span>
                           <span>{formatNumber(entry.macd)}</span>
+                          <span>{entry.trend}</span>
                         </motion.div>
                       ))
                     : (
@@ -217,6 +227,40 @@ export function SignalsBoard() {
         </div>
       </div>
     </main>
+  );
+}
+
+function MiniSparkline({ values }: { values: number[] }) {
+  if (values.length < 2) {
+    return <span className="text-slate-500">Flat</span>;
+  }
+
+  const width = 72;
+  const height = 24;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const points = values
+    .map((value, index) => {
+      const x = (index / (values.length - 1)) * width;
+      const y = height - ((value - min) / range) * height;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  const direction = values[values.length - 1] >= values[0];
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-6 w-[72px] overflow-visible">
+      <polyline
+        fill="none"
+        stroke={direction ? "#67e8f9" : "#fda4af"}
+        strokeWidth="2"
+        points={points}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
