@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Python virtual env
+.venv/
+venv/
+env/
+
+# Mac
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Node / frontend
+node_modules/
+frontend/node_modules/
+
+# Next.js
+.next/
+dist/
+build/
+
+# Cache
+.cache/__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+node_modules/
+.DS_Store
+.ipynb_checkpoints/
+dist/
+build/
+.next/
+.cache/
+*.log
+
