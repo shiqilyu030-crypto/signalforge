@@ -1,4 +1,4 @@
-export const API_BASE = "https://signalforge-zcv2.onrender.com";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export type PriceRecord = {
   Date: string;
