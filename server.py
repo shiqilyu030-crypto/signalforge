@@ -24,7 +24,7 @@ app.add_middleware(
     allow_origins=[
         "https://signalforge.vercel.app",
         "https://signalforge-git-main-shiqilyu030-cryptos-projects.vercel.app",
-        "http://localhost:3000"
+        "http://localhost:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
