@@ -123,6 +123,48 @@ async function requestJson<T>(path: string, params?: RequestParams): Promise<T |
   }
 }
 
+type RawPricesResponse = {
+  symbol: string;
+  source?: string;
+  rows: number;
+  data?: PriceRecord[];
+  prices?: PriceRecord[];
+};
+
+type RawIndicatorsResponse = {
+  symbol: string;
+  source?: string;
+  rows: number;
+  data?: IndicatorRecord[];
+  indicators?: IndicatorRecord[];
+};
+
+function normalizePricesResponse(payload: RawPricesResponse | null): PricesResponse | null {
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    symbol: payload.symbol,
+    source: payload.source ?? "yahoo_finance",
+    rows: payload.rows,
+    data: payload.data ?? payload.prices ?? []
+  };
+}
+
+function normalizeIndicatorsResponse(payload: RawIndicatorsResponse | null): IndicatorsResponse | null {
+  if (!payload) {
+    return null;
+  }
+
+  return {
+    symbol: payload.symbol,
+    source: payload.source ?? "yahoo_finance",
+    rows: payload.rows,
+    data: payload.data ?? payload.indicators ?? []
+  };
+}
+
 export async function fetchHealth(): Promise<HealthResponse | null> {
   return requestJson<HealthResponse>("/health");
 }
@@ -133,10 +175,12 @@ export async function fetchPrices(
 ): Promise<PricesResponse | null> {
   const request = { ...DEFAULT_REQUEST_OPTIONS, ...options };
 
-  return requestJson<PricesResponse>(symbolPath("prices", symbol), {
+  const payload = await requestJson<RawPricesResponse>(symbolPath("prices", symbol), {
     period: request.period,
     interval: request.interval
   });
+
+  return normalizePricesResponse(payload);
 }
 
 export async function fetchIndicators(
@@ -145,12 +189,14 @@ export async function fetchIndicators(
 ): Promise<IndicatorsResponse | null> {
   const request = { ...DEFAULT_REQUEST_OPTIONS, ...options };
 
-  return requestJson<IndicatorsResponse>(symbolPath("indicators", symbol), {
+  const payload = await requestJson<RawIndicatorsResponse>(symbolPath("indicators", symbol), {
     period: request.period,
     interval: request.interval,
     short_window: request.short_window,
     long_window: request.long_window
   });
+
+  return normalizeIndicatorsResponse(payload);
 }
 
 export async function fetchBacktest(
