@@ -24,6 +24,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://signalforge-rose.vercel.app",
         "http://localhost:3000",
     ],
     allow_origin_regex=r"https://.*\.vercel\.app",
@@ -191,7 +192,7 @@ def build_signal_payload(
     macd_signal = latest.get("MACDSignal")
     previous_macd = previous.get("MACD")
     previous_signal = previous.get("MACDSignal")
-    latest_backtest = backtest_df.iloc[-1]
+    latest_backtest = backtest_df.iloc[-1] if not backtest_df.empty else None
 
     trend_points = 30 if pd.notna(ma50) and close_price > float(ma50) else 0
 
@@ -273,8 +274,16 @@ def build_signal_payload(
 
     summary = f"{explanation} This signal is informational only and not investment advice."
 
-    cumulative_strategy = latest_backtest.get("CumulativeStrategyReturn")
-    buy_and_hold = latest_backtest.get("CumulativeMarketReturn")
+    cumulative_strategy = (
+        latest_backtest.get("CumulativeStrategyReturn")
+        if latest_backtest is not None
+        else None
+    )
+    buy_and_hold = (
+        latest_backtest.get("CumulativeMarketReturn")
+        if latest_backtest is not None
+        else None
+    )
     cumulative_return = float(cumulative_strategy) - 1 if pd.notna(cumulative_strategy) else None
     buy_and_hold_return = float(buy_and_hold) - 1 if pd.notna(buy_and_hold) else None
 
