@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any, Dict, Optional, Tuple
@@ -10,22 +9,14 @@ from typing import Any, Dict, Optional, Tuple
 import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text, select
 
 from backtest import backtest_moving_average_crossover, summarize_backtest
-from db import Price, SessionLocal, init_db
 from historical_prices import fetch_historical_prices
 from indicators import add_macd, add_moving_averages, add_rsi
-from watchlist import DEFAULT_WATCHLIST
-
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    yield
 
 app = FastAPI(
-    title="Quant Data Platform API",
+    title="SignalForge API",
     version="0.2.0",
-    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -111,51 +102,12 @@ def resolve_date_range(
 
 
 def validate_interval(interval: str) -> None:
-    """Ensure requests match the granularity supported by the PostgreSQL cache."""
+    """Ensure requests use the daily granularity supported by the API."""
     if interval != "1d":
         raise HTTPException(
             status_code=400,
-            detail="Only interval=1d is supported by the PostgreSQL-backed API.",
+            detail="Only interval=1d is currently supported.",
         )
-
-
-def build_price_query(symbol: str, start_date: Optional[date], end_date: Optional[date]):
-    """Build a filtered SQLAlchemy query for price rows."""
-    statement = select(Price).where(Price.ticker == symbol.upper())
-    if start_date is not None:
-        statement = statement.where(Price.date >= start_date)
-    if end_date is not None:
-        statement = statement.where(Price.date <= end_date)
-    return statement.order_by(Price.date.asc())
-
-
-def load_prices_from_db(symbol: str, start_date: Optional[date], end_date: Optional[date]) -> pd.DataFrame:
-    """Load price rows from PostgreSQL into a normalized DataFrame."""
-    statement = build_price_query(symbol=symbol, start_date=start_date, end_date=end_date)
-    with SessionLocal() as session:
-        rows = session.execute(statement).scalars().all()
-
-    if not rows:
-        return pd.DataFrame()
-
-    dataframe = pd.DataFrame(
-        [
-            {
-                "Date": row.date,
-                "Open": float(row.open),
-                "High": float(row.high),
-                "Low": float(row.low),
-                "Close": float(row.close),
-                "Adj Close": float(row.adj_close) if row.adj_close is not None else None,
-                "Volume": row.volume,
-                "Ticker": row.ticker,
-                "CreatedAt": row.created_at,
-            }
-            for row in rows
-        ]
-    )
-    dataframe["Date"] = pd.to_datetime(dataframe["Date"])
-    return dataframe.sort_values("Date").reset_index(drop=True)
 
 
 def ensure_price_data(
@@ -165,50 +117,38 @@ def ensure_price_data(
     period: str,
     interval: str,
 ) -> Tuple[pd.DataFrame, str]:
-    """Load price data from PostgreSQL or fetch and store it if missing."""
+    """Fetch price data directly from Yahoo Finance."""
     validate_interval(interval)
     normalized_symbol = symbol.upper()
-    start_date, end_date = resolve_date_range(start=start, end=end, period=period)
-
-    dataframe = load_prices_from_db(symbol=normalized_symbol, start_date=start_date, end_date=end_date)
-    if not dataframe.empty:
-        return dataframe, "postgresql"
 
     try:
-        fetch_historical_prices(
+        dataframe = fetch_historical_prices(
             symbol=normalized_symbol,
             start=start,
             end=end,
             period=period,
             interval=interval,
             save_to_csv=False,
-            save_to_db=True,
         )
     except ValueError as exc:
-        detail = (
-            f"No data is currently loaded for {normalized_symbol}. "
-            f"Run `python refresh_prices.py` to refresh the default watchlist "
-            f"({', '.join(DEFAULT_WATCHLIST)}), or load {normalized_symbol} separately. "
-            f"Original error: {exc}"
-        )
+        detail = f"SignalForge could not find price data for {normalized_symbol}. {exc}"
         raise HTTPException(status_code=404, detail=detail) from exc
     except Exception as exc:  # pragma: no cover
         detail = (
-            f"SignalForge could not load data for {normalized_symbol}. "
-            f"If this symbol has not been refreshed yet, run `python refresh_prices.py` first. "
+            f"SignalForge could not load data for {normalized_symbol} from Yahoo Finance. "
             f"Original error: {exc}"
         )
         raise HTTPException(status_code=500, detail=detail) from exc
 
-    dataframe = load_prices_from_db(symbol=normalized_symbol, start_date=start_date, end_date=end_date)
     if dataframe.empty:
-        detail = (
-            f"No stored price data is available for {normalized_symbol}. "
-            f"Run `python refresh_prices.py` to refresh the default watchlist "
-            f"({', '.join(DEFAULT_WATCHLIST)})."
-        )
-        raise HTTPException(status_code=404, detail=detail)
+        raise HTTPException(status_code=404, detail=f"No price data is available for {normalized_symbol}.")
 
+    start_date, end_date = resolve_date_range(start=start, end=end, period=period)
+    if start_date is not None:
+        dataframe = dataframe[dataframe["Date"].dt.date >= start_date]
+    if end_date is not None:
+        dataframe = dataframe[dataframe["Date"].dt.date <= end_date]
+    dataframe = dataframe.sort_values("Date").reset_index(drop=True)
     return dataframe, "yahoo_finance"
 
 
@@ -432,24 +372,17 @@ def build_strategy_summary(
 @app.get("/")
 def root() -> Dict[str, str]:
     """Basic API info endpoint."""
-    return {"message": "Quant Data Platform API is running."}
+    return {"message": "SignalForge API is running."}
 
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
-    """Return API status, database connectivity, and the current timestamp."""
+    """Return API status and the current timestamp."""
     timestamp = datetime.now(timezone.utc).isoformat()
-    database_status = "ok"
-
-    try:
-        with SessionLocal() as session:
-            session.execute(text("SELECT 1"))
-    except Exception as exc:
-        database_status = f"error: {exc}"
 
     return {
         "api_status": "ok",
-        "database_status": database_status,
+        "database_status": "disabled",
         "timestamp": timestamp,
     }
 
@@ -462,7 +395,7 @@ def get_prices(
     period: str = "1y",
     interval: str = "1d",
 ) -> Dict[str, Any]:
-    """Return price data from PostgreSQL, fetching and storing it if needed."""
+    """Return price data fetched directly from Yahoo Finance."""
     dataframe, source = ensure_price_data(symbol, start, end, period, interval)
     return {
         "symbol": symbol.upper(),
@@ -482,7 +415,7 @@ def get_indicators(
     short_window: int = Query(5, ge=1),
     long_window: int = Query(20, ge=1),
 ) -> Dict[str, Any]:
-    """Return technical indicators based on PostgreSQL-backed price data."""
+    """Return technical indicators based on Yahoo Finance price data."""
     if long_window <= short_window:
         raise HTTPException(status_code=400, detail="long_window must be greater than short_window.")
 
@@ -510,7 +443,7 @@ def get_backtest(
     short_window: int = Query(5, ge=1),
     long_window: int = Query(20, ge=1),
 ) -> Dict[str, Any]:
-    """Return moving-average crossover backtest results from PostgreSQL-backed price data."""
+    """Return moving-average crossover backtest results from Yahoo Finance price data."""
     if long_window <= short_window:
         raise HTTPException(status_code=400, detail="long_window must be greater than short_window.")
 
