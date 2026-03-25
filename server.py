@@ -21,11 +21,16 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://signalforge.vercel.app"],
+    allow_origins=[
+        "https://signalforge.vercel.app",
+        "https://signalforge-git-main-shiqilyu030-cryptos-projects.vercel.app",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 def normalize_value(value: Any) -> Any:
     """Convert pandas, decimal, and NumPy values into JSON-friendly primitives."""
     if pd.isna(value):
