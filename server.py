@@ -21,8 +21,10 @@ from watchlist import DEFAULT_WATCHLIST
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """Initialize the database schema when the API starts."""
-    init_db()
+    try:
+        init_db()
+    except Exception:
+        pass
     yield
 
 
